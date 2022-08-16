@@ -269,6 +269,9 @@ class Builder(object):
 
     return None
 
+  # def prune_previous_ensemble(self, previous_ensemble):
+  #   pass
+
 
 @six.add_metaclass(abc.ABCMeta)
 class Generator(object):

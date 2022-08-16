@@ -22,8 +22,8 @@ from __future__ import print_function
 import math
 
 from absl import logging
-from adanet import subnetwork
-from adanet import tf_compat
+from saep import subnetwork
+from saep import tf_compat
 import tensorflow.compat.v2 as tf
 
 

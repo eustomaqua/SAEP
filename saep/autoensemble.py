@@ -1,4 +1,4 @@
-"""A simple timer implementation.
+"""The TensorFlow AdaNet autoensemble module.
 
 Copyright 2018 The AdaNet Authors. All Rights Reserved.
 
@@ -19,27 +19,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import time
+from saep.autoensemble_common import AutoEnsembleSubestimator
+from saep.autoensemble_estimator import AutoEnsembleEstimator
+from saep.autoensemble_estimator import AutoEnsembleTPUEstimator
 
-
-class _CountDownTimer(object):
-  """A simple count down timer implementation."""
-
-  def __init__(self, duration_secs):
-    """Initializes a `_CountDownTimer`.
-
-    Args:
-      duration_secs: Float seconds for countdown.
-
-    Returns:
-      A `_CountDownTimer` instance.
-    """
-
-    self._start_time_secs = time.time()
-    self._duration_secs = duration_secs
-
-  def secs_remaining(self):
-    """Returns the remaining countdown seconds."""
-
-    diff = self._duration_secs - (time.time() - self._start_time_secs)
-    return max(0., diff)
+__all__ = [
+    "AutoEnsembleEstimator",
+    "AutoEnsembleSubestimator",
+    "AutoEnsembleTPUEstimator",
+]

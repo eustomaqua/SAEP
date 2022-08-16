@@ -1,4 +1,4 @@
-"""A simple timer implementation.
+"""TensorFLow AdaNet core logic.
 
 Copyright 2018 The AdaNet Authors. All Rights Reserved.
 
@@ -19,27 +19,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import time
+from saep.core_estimator import Estimator
+from saep.core_evaluator import Evaluator
+from saep.core_report_materializer import ReportMaterializer
+from saep.core_summary import Summary
+from saep.core_tpu_estimator import TPUEstimator
 
-
-class _CountDownTimer(object):
-  """A simple count down timer implementation."""
-
-  def __init__(self, duration_secs):
-    """Initializes a `_CountDownTimer`.
-
-    Args:
-      duration_secs: Float seconds for countdown.
-
-    Returns:
-      A `_CountDownTimer` instance.
-    """
-
-    self._start_time_secs = time.time()
-    self._duration_secs = duration_secs
-
-  def secs_remaining(self):
-    """Returns the remaining countdown seconds."""
-
-    diff = self._duration_secs - (time.time() - self._start_time_secs)
-    return max(0., diff)
+__all__ = [
+    "Estimator",
+    "Evaluator",
+    "ReportMaterializer",
+    "Summary",
+    "TPUEstimator",
+]
