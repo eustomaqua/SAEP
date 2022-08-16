@@ -1,4 +1,4 @@
-# Copyright 2018 The AdaNet Authors. All Rights Reserved.
+# Copyright 2020 The SAEP Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,4 +14,4 @@
 # ==============================================================================
 """Contains the version string."""
 
-__version__ = u"0.9.0"
+__version__ = u"0.1.0"

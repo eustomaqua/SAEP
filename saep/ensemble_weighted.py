@@ -1,4 +1,4 @@
-# Copyright 2019 The AdaNet Authors. All Rights Reserved.
+# Copyright 2020 The SAEP Authors. All Rights Reserved.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,15 @@ from saep import tf_compat
 from saep.ensemble_ensembler import Ensemble
 from saep.ensemble_ensembler import Ensembler
 import tensorflow.compat.v2 as tf
+
+
+import tensorflow.compat.v1 as tf_v1
+from data_entropy import pairwise_measure_all_without_label
+from data_entropy import pairwise_measure_all_disagreement
+from data_entropy import PrunedAdanetSelect
+import numpy as np
+DTY_INT = 'int32'
+DTY_FLT = 'float32'
 
 
 def _stringify(key):
@@ -88,6 +97,7 @@ class WeightedSubnetwork(
 class ComplexityRegularized(
         collections.namedtuple("ComplexityRegularized", [
             "weighted_subnetworks", "bias", "logits", "subnetworks",
+            "diver_weight", "diver_subnet",
             "complexity_regularization"
         ]), Ensemble):
   r"""An AdaNet ensemble where subnetworks are regularized by model complexity.
@@ -121,6 +131,8 @@ class ComplexityRegularized(
               weighted_subnetworks,
               bias,
               logits,
+              diver_weight=None,
+              diver_subnet=None,
               subnetworks=None,
               complexity_regularization=None):
     return super(ComplexityRegularized, cls).__new__(
@@ -128,6 +140,8 @@ class ComplexityRegularized(
         weighted_subnetworks=list(weighted_subnetworks),
         bias=bias,
         logits=logits,
+        diver_weight=diver_weight,
+        diver_subnet=diver_subnet,
         subnetworks=list(subnetworks or []),
         complexity_regularization=complexity_regularization)
 
@@ -260,24 +274,88 @@ class ComplexityRegularizedEnsembler(Ensembler):
                      iteration_step,
                      summary,
                      previous_ensemble,
-                     previous_iteration_checkpoint=None):
-    del features, labels, logits_dimension, training, iteration_step  # unused
+                     previous_iteration_checkpoint=None,
+                     logger=None,
+                     ensemble_pruning="keep_all",
+                     thinp_alpha=0.5,
+                     random_seed=None,
+                     model_dir=None):
+    # del features, labels, logits_dimension, training, iteration_step  # unused
+    del features, iteration_step  # unused
     weighted_subnetworks = []
     subnetwork_index = 0
     num_subnetworks = len(subnetworks)
+    if logger is not None:
+      logger.debug(
+          "[ensemble_weighted.py    ] b4: num_subnetworks={} "
+          "condition= {:5s} & {:5s}".format(
+              num_subnetworks,
+              str(not (not previous_ensemble_subnetworks)),
+              str(not (not previous_ensemble))))
 
     if previous_ensemble_subnetworks and previous_ensemble:
       num_subnetworks += len(previous_ensemble_subnetworks)
-      for weighted_subnetwork in previous_ensemble.weighted_subnetworks:
+      # SAEP Notice! Pruned
+      if logger is not None:
+        logger.debug(
+            "{:26s} af: num_subnetworks={} = b4+ {}".format(
+                '', num_subnetworks, len(previous_ensemble_subnetworks)))
+        logger.debug("{:26s} ensemble_pruning = {:13s}  {}".format(
+            '', ensemble_pruning, (
+                "thinp_alpha={}".format(thinp_alpha) 
+                if ensemble_pruning == "pick_infothin" else "")))
+      if training:
+        if ensemble_pruning == "keep_all":
+          pruned_list = self.prune_weighted_ensemble_keeptheall(
+              previous_ensemble.weighted_subnetworks, logger)
+        elif ensemble_pruning == "pick_randsear":
+          pruned_list = self.prune_weighted_ensemble_randsearch(
+              previous_ensemble.weighted_subnetworks, logger)
+        elif ensemble_pruning == "pick_worthful":
+          pruned_list = self.prune_weighted_ensemble_worthfully(
+              previous_ensemble.weighted_subnetworks, labels,
+              logger, model_dir, previous_iteration_checkpoint)
+        elif ensemble_pruning == "pick_infothin":
+          pruned_list = self.prune_weighted_ensemble_info_thinp(
+              previous_ensemble.weighted_subnetworks, labels, thinp_alpha,
+              logger, model_dir, previous_iteration_checkpoint,
+              logits_dimension, random_seed)
+        if logger is not None:
+          logger.debug(
+              "{:26s} len(previous_weighted.weighted_subnetworks)={:2d} "
+              "\tpruned_list= {}".format(
+                  '', len(previous_ensemble.weighted_subnetworks), pruned_list))
+        diver_temp = self.compute_diversity_of_disagreement(
+            previous_ensemble_subnetworks, labels, pruned_list,
+            logger, previous_iteration_checkpoint, model_dir)
+      else:
+        diver_temp = self.compute_diversity_of_disagreement(
+            previous_ensemble_subnetworks, labels,
+            list(range(len(previous_ensemble_subnetworks))),
+            logger, previous_iteration_checkpoint, model_dir)
+      if logger is not None:
+        if isinstance(diver_temp, float):
+          logger.debug(
+              "     calculate diversity | diversity = Null  {}".format(diver_temp))
+        logger.debug(
+            "{:26s} ensemble_weighted.py training={}".format('', training))
+      # del labels, logits_dimension  # unused
+      # SAEP Notice! Pruned
+
+      # for weighted_subnetwork in previous_ensemble.weighted_subnetworks:
+      for pruned_indx, weighted_subnetwork in enumerate(previous_ensemble.weighted_subnetworks):
         if weighted_subnetwork.subnetwork not in previous_ensemble_subnetworks:
           # Pruned.
           continue
+        if logger is not None:
+          logger.debug("{:26s} weighted_subnetwork NOT in previous_ensemble_subnetworks?  id={:2d}  {}".format('', pruned_indx, weighted_subnetwork.subnetwork not in previous_ensemble_subnetworks))
+        # SAEP Notice! Pruned
         weight_initializer = None
         if self._warm_start_mixture_weights:
           if isinstance(weighted_subnetwork.subnetwork.last_layer, dict):
             weight_initializer = {
                 key: self._load_variable(weighted_subnetwork.weight[key],
-                                         previous_iteration_checkpoint)
+                                         previous_iteration_checkpoint) 
                 for key in sorted(weighted_subnetwork.subnetwork.last_layer)
             }
           else:
@@ -285,12 +363,18 @@ class ComplexityRegularizedEnsembler(Ensembler):
                 weighted_subnetwork.weight, previous_iteration_checkpoint)
         with tf_compat.v1.variable_scope(
                 "weighted_subnetwork_{}".format(subnetwork_index)):
+          if training:
+            pruned_flag = pruned_indx not in pruned_list
+          else:
+            pruned_flag = False
           weighted_subnetworks.append(
               self._build_weighted_subnetwork(
                   weighted_subnetwork.subnetwork,
                   num_subnetworks,
-                  weight_initializer=weight_initializer))
+                  weight_initializer=weight_initializer,
+                  pruned_flag=pruned_flag))
         subnetwork_index += 1
+      # SAEP Notice! Pruned
 
     for subnetwork in subnetworks:
       with tf_compat.v1.variable_scope(
@@ -318,6 +402,7 @@ class ComplexityRegularizedEnsembler(Ensembler):
     else:
       bias = self._create_bias_term(weighted_subnetworks)
 
+    # SAEP Notice! Pruned
     logits = self._create_ensemble_logits(weighted_subnetworks, bias, summary)
     complexity_regularization = 0
     if isinstance(logits, dict):
@@ -328,12 +413,282 @@ class ComplexityRegularizedEnsembler(Ensembler):
       complexity_regularization = self._compute_complexity_regularization(
           weighted_subnetworks, summary)
 
+    diver_weight = self.ensemble_diversity_disagreement(weighted_subnetworks)
+    diver_subnet = self.ensemble_diversity_disagreement([ws.subnetwork for ws in weighted_subnetworks])
     return ComplexityRegularized(
         weighted_subnetworks=weighted_subnetworks,
         bias=bias,
         subnetworks=[ws.subnetwork for ws in weighted_subnetworks],
         logits=logits,
+        diver_weight=diver_weight,
+        diver_subnet=diver_subnet,
         complexity_regularization=complexity_regularization)
+
+  # SAEP Notice START
+
+  def ensemble_diversity_disagreement(self, weak_subnetworks):
+    weak_logits = [tf.argmax(subnet.logits, axis=1) for subnet in weak_subnetworks]
+    ensem_diver = 0.
+    number_subnet = len(weak_logits)
+    for i in range(number_subnet):
+      for j in range(i, number_subnet):
+        ensem_diver += tf.reduce_mean(tf.cast(tf.not_equal(weak_logits[i], weak_logits[j]), DTY_FLT))
+    # return ensem_diver # Don't do that, this is for the whole ensemble
+    return ensem_diver / number_subnet ** 2
+
+  def compute_diversity_for_evaluation(self, weak_logits, labels,
+                                       pruned_list, logger=None):
+    # This is a subroute in `def compute_diversity_of_disagreement`
+    nb_cls, m = np.shape(weak_logits)
+    nb_pru = len(pruned_list)
+    if nb_pru == nb_cls:
+      diver_win = pairwise_measure_all_disagreement(weak_logits, labels, m, nb_cls)
+      diver_out = pairwise_measure_all_without_label(weak_logits, m, nb_cls)
+      if logger is not None:
+        logger.debug(
+            "eval calculate diversity | `include / without`: {}\t \t{}"
+            "".format(diver_win, diver_out))
+      return diver_win, diver_out
+    pick_logits = np.array(weak_logits)[pruned_list]
+    diver_b4_win = pairwise_measure_all_disagreement(weak_logits, labels, m, nb_cls)
+    diver_af_win = pairwise_measure_all_disagreement(pick_logits, labels, m, nb_pru)
+    diver_b4_out = pairwise_measure_all_without_label(weak_logits, m, nb_cls)
+    diver_af_out = pairwise_measure_all_without_label(pick_logits, m, nb_pru)
+    if logger is not None:
+      logger.debug("{:26s} include label b4/af: {}\t{}".format(
+          '', diver_b4_win, diver_af_win))
+      logger.debug("{:26s} without label b4/af: {}\t{}".format(
+          '', diver_b4_out, diver_af_out))
+      logger.debug("{:26s} within b4/af, w.out: {}\t{}\t{}\t{}".format(
+          '', diver_b4_win, diver_af_win, diver_b4_out, diver_af_out))
+    return diver_b4_win, diver_af_win, diver_b4_out, diver_af_out
+
+  def compute_diversity_of_disagreement(self, weighted_subnetworks, labels,
+                                        pruned_list, logger=None,
+                                        previous_iteration_checkpoint=None,
+                                        model_dir=None):
+    # number_subnetworks = len(weighted_subnetworks)
+    if len(weighted_subnetworks) <= 1:
+      return 0.
+    weak_logits = [
+        tf.nn.softmax(subnet.logits) for subnet in weighted_subnetworks]
+    weak_logits = [
+        tf.cast(tf.argmax(subnet, axis=1), DTY_INT) for subnet in weak_logits]
+    if self._model_dir:
+      model_dir = self._model_dir
+    latest_checkpoint = tf.train.latest_checkpoint(model_dir)
+    status = previous_iteration_checkpoint.restore(latest_checkpoint)
+    with tf_compat.v1.Session() as sess:
+      status.initialize_or_restore(sess)
+      weak_logits = [sess.run(subnet) for subnet in weak_logits]
+      labels = sess.run(labels)
+    if logger is not None:
+      logger.debug(
+          "     calculate diversity | labels.shape= {}".format(np.shape(labels)))
+    return self.compute_diversity_for_evaluation(
+        weak_logits, labels, pruned_list, logger)
+
+  def prune_previous_ensemble_keeptheall(self, weighted_subnetworks, logger=None):
+    return list(range(len(weighted_subnetworks)))
+
+  def prune_previous_ensemble_randsearch(self, weighted_subnetworks, logger=None):
+    pruned_lens = len(weighted_subnetworks)
+    if pruned_lens <= 1:
+      return list(range(pruned_lens))
+    pruned_list = list(range(pruned_lens))
+    pruned_temp = np.random.rand()
+    if pruned_temp > 0.5:
+      pruned_indx = np.random.choice(pruned_list)
+      pruned_list.remove(pruned_indx)
+      del pruned_indx
+    del pruned_lens
+    if logger is not None:
+      logger.debug(
+          "prune_ensem_subroute_PRS | Whether   to prune?  {:5s}  because of {}"
+          "".format(str(pruned_temp > 0.5), pruned_temp))
+      logger.debug(
+          "{:26s} Which one to prune?  index= {}".format('', pruned_list))
+    return pruned_list
+
+  def prune_previous_ensemble_worthfully(self, weighted_subnetworks, labels,
+                                         logger=None,
+                                         model_dir=None,
+                                         previous_iteration_checkpoint=None):
+    pruned_lens = len(weighted_subnetworks)
+    if pruned_lens <= 1:
+      return list(range(pruned_lens))
+    ensemble_logits = 0.0
+    weak_logits = [
+        tf.nn.softmax(subnet.logits) for subnet in weighted_subnetworks]
+    for subnet in weak_logits:
+      ensemble_logits = tf.add(subnet, ensemble_logits)
+    weak_logits = [
+        tf.subtract(ensemble_logits, subnet) for subnet in weak_logits]
+    ensemble_logits = tf.cast(tf.argmax(ensemble_logits, axis=1), DTY_INT)
+    weak_logits = [
+        tf.cast(tf.argmax(subnet, axis=1), DTY_INT) for subnet in weak_logits]
+    error_rate_fens = tf.equal(ensemble_logits, labels)
+    error_rate_fens = 1. - tf.reduce_mean(tf.cast(error_rate_fens, DTY_FLT))
+    error_rate_barj = [
+        tf.cast(tf.equal(subnet, labels), DTY_FLT) for subnet in weak_logits]
+    error_rate_barj = [1. - tf.reduce_mean(subnet) for subnet in error_rate_barj]
+    error_rate_diff = [error_rate_fens - subnet for subnet in error_rate_barj]
+    if self._model_dir:
+      model_dir = self._model_dir
+    latest_checkpoint = tf.train.latest_checkpoint(model_dir)
+    status = previous_iteration_checkpoint.restore(latest_checkpoint)
+    with tf_compat.v1.Session() as sess:
+      status.initialize_or_restore(sess)
+      error_rate_diff = sess.run(error_rate_diff)
+      error_rate_fens = sess.run(error_rate_fens)
+      error_rate_barj = sess.run(error_rate_barj)
+    if logger is not None:
+      logger.debug("prune_ensem_subroute_PAP | error_rate_fens = {}"
+                   "".format(error_rate_fens))
+      logger.debug("{:26s} error_rate_barj = {}".format('', error_rate_barj))
+      logger.debug("{:26s} error_rate_diff = {}".format('', error_rate_diff))
+    return [k for k, v in enumerate(error_rate_diff) if v > 0.]
+
+  def prune_previous_ensemble_info_thinp(self, weighted_subnetworks, labels,
+                                         thinp_alpha=0.5, logger=None,
+                                         model_dir=None,
+                                         previous_iteration_checkpoint=None,
+                                         logits_dimension=10, random_seed=None):
+    pruned_lens = len(weighted_subnetworks)
+    if pruned_lens <= 1:
+      return list(range(pruned_lens))
+    weak_logits = [
+        tf.nn.softmax(subnet.logits) for subnet in weighted_subnetworks]
+    weak_logits = [
+        tf.cast(tf.argmax(subnet, axis=1), DTY_INT) for subnet in weak_logits]
+    if self._model_dir:
+      model_dir = self._model_dir
+    latest_checkpoint = tf.train.latest_checkpoint(model_dir)
+    status = previous_iteration_checkpoint.restore(latest_checkpoint)
+    with tf_compat.v1.Session() as sess:
+      status.initialize_or_restore(sess)
+      weak_logits = [sess.run(subnet) for subnet in weak_logits]
+      labels = sess.run(labels)
+    if logger is not None:
+      logger.debug("prune_ensem_subroute_PIE | weak_logits.shape= {}"
+                   "".format(np.shape(weak_logits)))
+    if len(weak_logits) <= 1:
+      return list(range(len(weak_logits)))
+    info = PrunedAdanetSelect(num_classes=logits_dimension, random_seed=random_seed)
+    yd_weak = np.array(weak_logits).transpose().tolist()
+    y_true = labels.tolist()
+    S2 = info.Greedy(yd_weak, len(weak_logits) - 1, y_true, thinp_alpha)
+    if logger is not None:
+      logger.debug("{:26s} thinp_alpha= {:.2f}  S2= {}".format('', thinp_alpha, S2))
+    return [k for k, v in enumerate(S2) if v]
+
+  def prune_weighted_ensemble_keeptheall(self, weighted_subnetworks, logger=None):
+    return list(range(len(weighted_subnetworks)))
+
+  def prune_weighted_ensemble_randsearch(self, weighted_subnetworks, logger=None):
+    pruned_lens = len(weighted_subnetworks)
+    pruned_list = list(range(pruned_lens))
+    if pruned_lens <= 2:
+      return pruned_list
+    pruned_temp = np.random.choice([False, True])
+    if pruned_temp:
+      pruned_indx = np.random.choice(pruned_list)
+      pruned_list.remove(pruned_indx)
+    if logger is not None:
+      logger.debug(
+          "prune_ensem_subroute_PRS | Whether to prune?  {}".format(pruned_temp))
+      if pruned_temp:
+        logger.debug("{:26s} Which one is it?:  {}".format('', pruned_indx))
+      logger.debug("{:26s} List after prune:  {}".format('', pruned_list))
+    return pruned_list
+
+  def prune_weighted_ensemble_worthfully(self, weighted_subnetworks, labels,
+                                         logger=None,
+                                         model_dir=None,
+                                         previous_iteration_checkpoint=None):
+    pruned_lens = len(weighted_subnetworks)
+    if pruned_lens <= 2:
+      return list(range(pruned_lens))
+    ensemble_logits = 0.0
+    weak_logits = [
+        tf.multiply(
+            subnet.weight, tf.nn.softmax(subnet.logits)
+        ) for subnet in weighted_subnetworks]
+    for subnet in weak_logits:
+      ensemble_logits = tf.add(subnet, ensemble_logits)
+    weak_logits = [
+        tf.subtract(ensemble_logits, subnet) for subnet in weak_logits]
+    ensemble_logits = tf.cast(tf.argmax(ensemble_logits, axis=1), DTY_INT)
+    weak_logits = [
+        tf.cast(tf.argmax(subnet, axis=1), DTY_INT) for subnet in weak_logits]
+    error_rate_fens = tf.equal(ensemble_logits, labels)
+    error_rate_fens = 1. - tf.reduce_mean(tf.cast(error_rate_fens, DTY_FLT))
+    error_rate_barj = [
+        tf.cast(tf.equal(subnet, labels), DTY_FLT) for subnet in weak_logits]
+    error_rate_barj = [1. - tf.reduce_mean(subnet) for subnet in error_rate_barj]
+    if self._model_dir:
+      model_dir = self._model_dir
+    latest_checkpoint = tf.train.latest_checkpoint(model_dir)
+    status = previous_iteration_checkpoint.restore(latest_checkpoint)
+    with tf_compat.v1.Session() as sess:
+      status.initialize_or_restore(sess)
+      error_rate_fens = sess.run(error_rate_fens)
+      error_rate_barj = sess.run(error_rate_barj)
+    error_rate_diff = [error_rate_fens - subnet for subnet in error_rate_barj]
+    if logger is not None:
+      logger.debug("prune_ensem_subroute_PAP | error_rate_fens = {}".format(error_rate_fens))
+      logger.debug("{:26s} error_rate_barj = {}".format('', error_rate_barj))
+      logger.debug("{:26s} error_rate_diff = {}".format('', error_rate_diff))
+    pruned_list = [k for k, v in enumerate(error_rate_diff) if v > 0.]  # v >= 0.
+    if not pruned_list:
+      pruned_temp = np.argsort(error_rate_diff).tolist()[::-1]
+      pruned_indx = pruned_temp[: min(pruned_lens, 2)]
+      pruned_list = sorted(pruned_indx)
+      if logger is not None:
+        logger.debug(
+            "{:26s} For robustness, np.argsort(error_rate_diff) descending"
+            "".format(''))
+        logger.debug(
+            "{:26s} {:15s} descending index =  {}".format('', '', pruned_temp))
+        logger.debug(
+            "{:26s} {:15s} picked out index =  {}".format('', '', pruned_indx))
+    return pruned_list
+
+  def prune_weighted_ensemble_info_thinp(self, weighted_subnetworks, labels,
+                                         thinp_alpha=0.5, logger=None,
+                                         model_dir=None,
+                                         previous_iteration_checkpoint=None,
+                                         logits_dimension=10, random_seed=None):
+    pruned_lens = len(weighted_subnetworks)
+    if pruned_lens <= 2:
+      return list(range(pruned_lens))
+    weak_logits = [
+        tf.multiply(
+            subnet.weight, tf.nn.softmax(subnet.logits)
+        ) for subnet in weighted_subnetworks]
+    weak_logits = [tf.cast(
+        tf.argmax(subnet, axis=1), DTY_INT) for subnet in weak_logits]
+    if self._model_dir:
+      model_dir = self._model_dir
+    latest_checkpoint = tf.train.latest_checkpoint(model_dir)
+    status = previous_iteration_checkpoint.restore(latest_checkpoint)
+    with tf_compat.v1.Session() as sess:
+      status.initialize_or_restore(sess)
+      weak_logits = [sess.run(subnet) for subnet in weak_logits]
+      labels = sess.run(labels)
+    if logger is not None:
+      logger.debug(
+          "prune_ensem_subroute_PIE | weak_logits.shape= {}".format(
+              np.shape(weak_logits)))
+    info = PrunedAdanetSelect(num_classes=logits_dimension, random_seed=random_seed)
+    yd_weak = np.array(weak_logits).transpose().tolist()
+    y_true = labels.tolist()
+    S2 = info.Greedy(yd_weak, len(weak_logits) - 1, y_true, thinp_alpha)
+    if logger is not None:
+      logger.debug("{:26s} thinp_alpha= {:.2f}  S2= {}".format('', thinp_alpha, S2))
+    return [k for k, v in enumerate(S2) if v]
+
+  # SAEP Notice END
 
   def _load_variable(self, var, previous_iteration_checkpoint):
     latest_checkpoint = tf.train.latest_checkpoint(self._model_dir)
@@ -368,7 +723,8 @@ class ComplexityRegularizedEnsembler(Ensembler):
   def _build_weighted_subnetwork(self,
                                  subnetwork,
                                  num_subnetworks,
-                                 weight_initializer=None):
+                                 weight_initializer=None,
+                                 pruned_flag=False):
     """Builds an `adanet.ensemble.WeightedSubnetwork`.
 
     Args:
@@ -389,10 +745,12 @@ class ComplexityRegularizedEnsembler(Ensembler):
       for i, key in enumerate(sorted(subnetwork.last_layer)):
         logits[key], weight[key] = self._build_weighted_subnetwork_helper(
             subnetwork, num_subnetworks,
-            _lookup_if_dict(weight_initializer, key), key, i)
+            _lookup_if_dict(weight_initializer, key), key, i,
+            pruned_flag=pruned_flag)
     else:
       logits, weight = self._build_weighted_subnetwork_helper(
-          subnetwork, num_subnetworks, weight_initializer)
+          subnetwork, num_subnetworks, weight_initializer,
+          pruned_flag=pruned_flag)
 
     return WeightedSubnetwork(
         subnetwork=subnetwork, logits=logits, weight=weight)
@@ -402,7 +760,8 @@ class ComplexityRegularizedEnsembler(Ensembler):
                                         num_subnetworks,
                                         weight_initializer=None,
                                         key=None,
-                                        index=None):
+                                        index=None,
+                                        pruned_flag=False):
     """Returns the logits and weight of the `WeightedSubnetwork` for key."""
 
     # Treat subnetworks as if their weights are frozen, and ensure that
@@ -451,6 +810,8 @@ class ComplexityRegularizedEnsembler(Ensembler):
           logits = tf.reshape(logits, [batch_size, -1, logits_size])
       else:
         logits = tf.multiply(logits, weight)
+      if pruned_flag:
+        logits = tf.multiply(logits, 0.)
     return logits, weight
 
   def _create_bias_term(self,

@@ -1,6 +1,6 @@
 """An AdaNet estimator implementation in Tensorflow using a single graph.
 
-Copyright 2018 The AdaNet Authors. All Rights Reserved.
+Copyright 2020 The SAEP Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -628,6 +628,12 @@ class Estimator(tf.estimator.Estimator):
                export_subnetwork_logits=False,
                export_subnetwork_last_layer=True,
                replay_config=None,
+               ensemble_pruning="keep_all",
+               input_data_dtype="numpy",
+               adanet_iterations=2,
+               thinp_alpha=0.5,
+               logger=None,
+               final=False,
                **kwargs):
     if subnetwork_generator is None:
       raise ValueError("subnetwork_generator can't be None.")
@@ -728,7 +734,17 @@ class Estimator(tf.estimator.Estimator):
         metric_fn=metric_fn,
         use_tpu=self._use_tpu,
         export_subnetwork_logits=export_subnetwork_logits,
-        export_subnetwork_last_layer=export_subnetwork_last_layer)
+        export_subnetwork_last_layer=export_subnetwork_last_layer,
+        ensemble_pruning=ensemble_pruning,
+        input_data_dtype=input_data_dtype,
+        model_dir=self._model_dir,
+        adanet_iterations=adanet_iterations,
+        thinp_alpha=thinp_alpha,
+        logger=logger,
+        random_seed=config.tf_random_seed)
+    self._diver_weight = []
+    self._diver_subnet = []
+    self._adanet_loss = []
 
     # TODO: Merge CandidateBuilder into SubnetworkManager.
     candidate_builder = _CandidateBuilder(adanet_loss_decay=adanet_loss_decay)
@@ -750,13 +766,17 @@ class Estimator(tf.estimator.Estimator):
         debug=debug,
         enable_ensemble_summaries=enable_ensemble_summaries,
         enable_subnetwork_summaries=enable_subnetwork_summaries,
-        enable_subnetwork_reports=self._report_materializer is not None)
+        enable_subnetwork_reports=self._report_materializer is not None,
+        logger=logger,
+        final=final)
     self._ensemble_strategies = ensemble_strategies or [
         ensemble_lib.GrowStrategy()
     ]
 
     report_dir = report_dir or os.path.join(self._model_dir, "report")
     self._report_accessor = _ReportAccessor(report_dir)
+
+    self.logger = logger
 
   def _summary_maker(self, scope=None, skip_summary=False, namespace=None):
     """Constructs a `_ScopedSummary`."""
@@ -1483,15 +1503,24 @@ class Estimator(tf.estimator.Estimator):
         metrics = candidate.ensemble_spec.eval_metrics.eval_metrics_ops()
         metrics["adanet_loss"] = tf_compat.v1.metrics.mean(
             candidate.ensemble_spec.adanet_loss)
+        # SAEP Notice! Diversity added here
+        metrics["diver_weight"] = tf.compat.v1.metrics.mean(
+            candidate.ensemble_spec.diver_weight)
+        metrics["diver_subnet"] = tf.compat.v1.metrics.mean(
+            candidate.ensemble_spec.diver_subnet)
         ensemble_metrics.append(metrics)
       if self._evaluator:
         metric_name = self._evaluator.metric_name
-        metrics = self._evaluator.evaluate(sess, ensemble_metrics)
+        metrics, div_wt, div_sb = self._evaluator.evaluate(sess, ensemble_metrics)
         objective_fn = self._evaluator.objective_fn
       else:
         metric_name = "adanet_loss"
         metrics = sess.run(
             [c.adanet_loss for c in current_iteration.candidates])
+        div_wt = sess.run(
+            [d.ensemble_spec.diver_weight for d in current_iteration.candidates])
+        div_sb = sess.run(
+            [d.ensemble_spec.diver_subnet for d in current_iteration.candidates])
         objective_fn = np.nanargmin
 
       values = []
@@ -1508,8 +1537,16 @@ class Estimator(tf.estimator.Estimator):
         # previous_ensemble.
         metrics = metrics[1:]
         index = objective_fn(metrics) + 1
+        self._adanet_loss.append(metrics[index - 1])
+        # self._diver_weight.append(div_wt[index])
+        # self._diver_subnet.append(div_sb[index])
+        self._diver_weight.append(div_wt[index - 1])
+        self._diver_subnet.append(div_sb[index - 1])
       else:
         index = objective_fn(metrics)
+        self._adanet_loss.append(metrics[index])
+        self._diver_weight.append(div_wt[index])
+        self._diver_subnet.append(div_sb[index])
     logging.info("Finished ensemble evaluation for iteration %s",
                  current_iteration.number)
     logging.info("'%s' at index %s is the best ensemble",
@@ -1955,6 +1992,7 @@ class Estimator(tf.estimator.Estimator):
 
     training = mode == tf.estimator.ModeKeys.TRAIN
     iteration_estimator_spec = current_iteration.estimator_spec
+    # SAEP Notice! EstimatorSpec
     training_chief_hooks = self._training_chief_hooks(current_iteration,
                                                       training)
     training_hooks = self._training_hooks(current_iteration, training,
@@ -2054,8 +2092,17 @@ class Estimator(tf.estimator.Estimator):
 
     # Only record summaries when training.
     skip_summaries = (mode != tf.estimator.ModeKeys.TRAIN or is_growing_phase)
+    if self.logger is not None:
+      self.logger.debug("")
+      self.logger.debug(
+          "[core_estimator.py       ] iteration_number= {}".format(
+              ' ' * iteration_number + str(iteration_number)))
+      self.logger.debug(
+          "{:26s} mode={:5s}, is_growing_phase={:5s}, skip_summaries={}".format(
+              '', mode, str(is_growing_phase), skip_summaries))
     base_global_step = 0
-    with tf_compat.v1.variable_scope("adanet"):
+    # with tf_compat.v1.variable_scope("adanet"):
+    with tf_compat.v1.variable_scope("saep"):
       previous_iteration = None
       previous_ensemble_spec = None
       previous_ensemble = None

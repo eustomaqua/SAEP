@@ -1,6 +1,6 @@
 """An AdaNet iteration implementation in Tensorflow using a single graph.
 
-Copyright 2018 The AdaNet Authors. All Rights Reserved.
+Copyright 2020 The SAEP Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -407,7 +407,8 @@ class _IterationBuilder(object):
                debug=False,
                enable_ensemble_summaries=True,
                enable_subnetwork_summaries=True,
-               enable_subnetwork_reports=True):
+               enable_subnetwork_reports=True,
+               logger=None, final=False):
     """Creates an `_IterationBuilder` instance.
 
     Args:
@@ -458,6 +459,9 @@ class _IterationBuilder(object):
     self._enable_subnetwork_summaries = enable_subnetwork_summaries
     self._enable_subnetwork_reports = enable_subnetwork_reports
     super(_IterationBuilder, self).__init__()
+
+    self.logger = logger
+    self.final = final
 
   @property
   def placement_strategy(self):
@@ -582,6 +586,15 @@ class _IterationBuilder(object):
     replay_indices_for_all = {}
     training = mode == tf.estimator.ModeKeys.TRAIN
     skip_summaries = mode == tf.estimator.ModeKeys.PREDICT or rebuilding
+    if self.logger is not None:
+      self.logger.debug(
+          "[core_iteration.py       ] iteration_number= {}".format(
+              ' ' * iteration_number + str(iteration_number)))
+      self.logger.debug(
+          "{:26s} mode={:5s}, rebuilding={:5s}, builder_mode={:5s}, "
+          "training={:5s}, skip_summaries={}".format(
+              '', mode, str(rebuilding), builder_mode, str(training),
+              skip_summaries))
     with tf_compat.v1.variable_scope("iteration_{}".format(iteration_number)):
       seen_builder_names = {}
       candidates = []

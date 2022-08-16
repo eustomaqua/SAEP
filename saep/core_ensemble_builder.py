@@ -1,6 +1,6 @@
 """An AdaNet ensemble definition in Tensorflow using a single graph.
 
-Copyright 2018 The AdaNet Authors. All Rights Reserved.
+Copyright 2020 The SAEP Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -52,6 +52,8 @@ class _EnsembleSpec(
             "variables",
             "loss",
             "adanet_loss",
+            "diver_weight",
+            "diver_subnet",
             "train_op",
             "eval_metrics",
             "export_outputs",
@@ -94,6 +96,8 @@ class _EnsembleSpec(
               variables,
               loss=None,
               adanet_loss=None,
+              diver_weight=None,
+              diver_subnet=None,
               train_op=None,
               eval_metrics=None,
               export_outputs=None,
@@ -112,6 +116,8 @@ class _EnsembleSpec(
         variables=variables,
         loss=loss,
         adanet_loss=adanet_loss,
+        diver_weight=diver_weight,
+        diver_subnet=diver_subnet,
         train_op=train_op,
         eval_metrics=eval_metrics,
         export_outputs=export_outputs)
@@ -289,7 +295,14 @@ class _EnsembleBuilder(object):
                metric_fn=None,
                use_tpu=False,
                export_subnetwork_logits=False,
-               export_subnetwork_last_layer=False):
+               export_subnetwork_last_layer=False,
+               ensemble_pruning="keep_all",
+               input_data_dtype="numpy",
+               model_dir=None,
+               adanet_iterations=2,
+               thinp_alpha=0.5,
+               random_seed=None,
+               logger=None):
     _verify_metric_fn_args(metric_fn)
 
     self._head = head
@@ -297,6 +310,14 @@ class _EnsembleBuilder(object):
     self._use_tpu = use_tpu
     self._export_subnetwork_logits = export_subnetwork_logits
     self._export_subnetwork_last_layer = export_subnetwork_last_layer
+
+    self.ensemble_pruning = ensemble_pruning
+    self.input_data_dtype = input_data_dtype
+    self.model_dir = model_dir
+    self.adanet_iterations = adanet_iterations
+    self.thinp_alpha = thinp_alpha
+    self.random_seed = random_seed
+    self.logger = logger
 
   def build_ensemble_spec(self,
                           name,
@@ -376,6 +397,10 @@ class _EnsembleBuilder(object):
                 "is deprecated. Please use a custom `adanet.ensemble.Strategy` "
                 "instead.")
             keep_indices = prune_previous_ensemble(previous_ensemble)
+        if self.logger is not None:
+          self.logger.debug("[core_ensemble_builder.py] prune_previous_ensemble callable={:5s}, len(candidate.subnetwork_builders)={}".format(
+              str(callable(prune_previous_ensemble)),
+              len(candidate.subnetwork_builders)))
         for i, builder in enumerate(previous_ensemble_spec.subnetwork_builders):
           if i not in keep_indices:
             continue
@@ -411,7 +436,12 @@ class _EnsembleBuilder(object):
             iteration_step=step_tensor,
             summary=summary,
             previous_ensemble=previous_ensemble,
-            previous_iteration_checkpoint=previous_iteration_checkpoint)
+            previous_iteration_checkpoint=previous_iteration_checkpoint,
+            logger=self.logger,
+            ensemble_pruning=self.ensemble_pruning,
+            thinp_alpha=self.thinp_alpha,
+            random_seed=self.random_seed,
+            model_dir=self.model_dir)
 
       estimator_spec = _create_estimator_spec(self._head, features, labels,
                                               mode, ensemble.logits,
@@ -424,6 +454,8 @@ class _EnsembleBuilder(object):
         # Add ensembler specific loss
         if isinstance(ensemble, ensemble_lib.ComplexityRegularized):
           adanet_loss += ensemble.complexity_regularization
+      diver_subnet = ensemble.diver_subnet
+      diver_weight = ensemble.diver_weight
 
       predictions = estimator_spec.predictions
       export_outputs = estimator_spec.export_outputs
@@ -563,6 +595,8 @@ class _EnsembleBuilder(object):
         variables=ensemble_variables,
         loss=ensemble_loss,
         adanet_loss=adanet_loss,
+        diver_subnet=diver_subnet,
+        diver_weight=diver_weight,
         train_op=train_op,
         eval_metrics=ensemble_metrics,
         export_outputs=export_outputs)

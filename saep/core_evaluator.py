@@ -1,6 +1,6 @@
 """An AdaNet evaluator implementation in Tensorflow using a single graph.
 
-Copyright 2018 The AdaNet Authors. All Rights Reserved.
+Copyright 2020 The SAEP Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -119,6 +119,8 @@ class Evaluator(object):
       logging_frequency = math.floor(self.steps / 10.)
 
     objective_metrics = [em[self._metric_name] for em in ensemble_metrics]
+    diver_weight_metrics = [em["diver_weight"] for em in ensemble_metrics]
+    diver_subnet_metrics = [em["diver_subnet"] for em in ensemble_metrics]
 
     sess.run(tf_compat.v1.local_variables_initializer())
     while True:
@@ -131,10 +133,14 @@ class Evaluator(object):
           logging.info("Ensemble evaluation [%d/%s]", evals_completed,
                        self.steps or "??")
         sess.run(objective_metrics)
+        sess.run(diver_weight_metrics)
+        sess.run(diver_subnet_metrics)
       except tf.errors.OutOfRangeError:
         logging.info("Encountered end of input after %d evaluations",
                      evals_completed)
         break
 
     # Evaluating the first element is idempotent for metric tuples.
-    return sess.run([metric[0] for metric in objective_metrics])
+    return sess.run([metric[0] for metric in objective_metrics]), \
+        sess.run([div_metric[0] for div_metric in diver_weight_metrics]), \
+        sess.run([div_metric[0] for div_metric in diver_subnet_metrics])

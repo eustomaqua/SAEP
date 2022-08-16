@@ -28,6 +28,13 @@ import six
 import tensorflow.compat.v2 as tf
 
 
+from data_entropy import pairwise_measure_all_without_label
+from data_entropy import pairwise_measure_all_disagreement
+import numpy as np
+DTY_INT = 'int32'
+DTY_FLT = 'float32'
+
+
 def _call_eval_metrics(eval_metrics):
   if not eval_metrics:
     return {}
@@ -192,6 +199,8 @@ class _SubnetworkMetrics(object):
 
   def eval_metrics_tuple(self):
     """Returns tuple of (metric_fn, tensors) which can be executed on TPU."""
+    # SAEP Notice! This is important. It is fn(*args) and gets a dict with
+    # keywords of 'accuracy', 'average_loss', and 'loss' (tf.Tensor).
 
     if not self._eval_metrics_store.metric_fns:
       return None
@@ -367,6 +376,7 @@ class _IterationMetrics(object):
             args[(len(args) - len(subnetwork_args)):])
         subnetwork_grouped_metrics = self._group_metric_ops(
             metric_fns, metric_fn_args)
+        # SAEP Notice! I considered to add diversity here and gave up later.
 
         eval_metric_ops = {}
         for metric_name in sorted(candidate_grouped_metrics):
