@@ -4,6 +4,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
+import time
+
+import tensorflow.compat.v1 as tf
+
 
 # ======================================
 # Preliminaries
@@ -12,15 +17,7 @@ from __future__ import print_function
 # Packages
 
 
-from copy import deepcopy
-import gc
-import os
-
-# import numpy as np
-import tensorflow.compat.v1 as tf
-
-
-gc.enable()
+# gc.enable()
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 GPU_OPTIONS = tf.compat.v1.GPUOptions(allow_growth=True)
 CONFIG = tf.compat.v1.ConfigProto(gpu_options=GPU_OPTIONS)
@@ -36,14 +33,6 @@ DTY_INT = 'int32'
 
 # 2. supply the data in TensorFlow
 FEATURES_KEY = "images"
-
-
-ensemble_pruning_set = {
-    "AdaNet": "keep_all",
-    "PRS": "pick_randsear",
-    "PAP": "pick_worthful",
-    "PIE": "pick_infothin",
-}
 
 
 # --------------------------------------
@@ -70,7 +59,7 @@ def preprocess_image_28(image, label):
 
 
 def preprocess_image_32(image, label):
-  """Preprocesses and image for an `Estimator`."""
+  """Preprocesses an image for an `Estimator`."""
   # first lets scale the pixel values to be between 0 and 1.
   image = image / 255.
   # next we reshape the image so that we can apply a 2D convolution to it.
@@ -110,8 +99,8 @@ def super_input_fn(X_train, y_train, X_test, y_test,
 
       iterator = dataset.make_one_shot_iterator()
       features, labels = iterator.get_next()
-
       return features, labels
+
     return _input_fn
   return input_fn
 
@@ -152,39 +141,25 @@ def data_to_feed_in(fed_data, binary=False, c0=4, c1=9):
   # fed_data = args.dataset
 
   if fed_data.startswith('cifar10'):
-    NUM_CLASS = 10
+    # NUM_CLASS = 10
     NUM_SHAPE = (32, 32, 3)
     TARGETS = [
         'airplane', 'automobile', 'bird', 'cat', 'deer',
         'dog', 'frog', 'horse', 'ship', 'truck',
     ]
   elif fed_data.endswith('mnist'):
-    NUM_CLASS = 10
+    # NUM_CLASS = 10
     NUM_SHAPE = (28, 28, 1)
     TARGETS = [
         'T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
         'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot',
     ]
-  elif fed_data == 'imagenet':
-    NUM_CLASS = 1000
-    NUM_SHAPE = (224, 224, 3)
-    TARGETS = ''
   else:
     raise ValueError("No such dataset named {}!".format(fed_data))
 
   if fed_data == 'cifar10':
     (X_train, y_train), (
         X_test, y_test) = tf.keras.datasets.cifar10.load_data()
-  elif fed_data == 'cifar100c':
-    (X_train, y_train), (
-        X_test, y_test) = tf.keras.datasets.cifar100.load_data(
-        label_mode='coarse')
-    NUM_CLASS = 20
-  elif fed_data == 'cifar100f':
-    (X_train, y_train), (
-        X_test, y_test) = tf.keras.datasets.cifar100.load_data(
-        label_mode='fine')
-    NUM_CLASS = 100
   elif fed_data == 'mnist':
     (X_train, y_train), (
         X_test, y_test) = tf.keras.datasets.mnist.load_data()
@@ -201,8 +176,6 @@ def data_to_feed_in(fed_data, binary=False, c0=4, c1=9):
     X_train = X_train.reshape(-1, 28, 28, 1)
     X_test = X_test.reshape(-1, 28, 28, 1)
 
-  # if args.binary:
-  #   c0, c1 = args.label_zero, args.label_one
   if binary:
     mask_train = (y_train == c0) | (y_train == c1)
     mask_test = (y_test == c0) | (y_test == c1)
@@ -212,7 +185,7 @@ def data_to_feed_in(fed_data, binary=False, c0=4, c1=9):
     X_test = X_test[mask_test]
     y_test = y_test[mask_test]
 
-  return NUM_CLASS, NUM_SHAPE, TARGETS, \
+  return NUM_SHAPE, TARGETS, \
       X_train, y_train, X_test, y_test
 
 

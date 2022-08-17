@@ -6,15 +6,15 @@ from __future__ import print_function
 
 
 import argparse
-
 from copy import deepcopy
-import gc
-
 import os
-import shutil
 
+import logging
 import numpy as np
-from PIL import Image
+
+from dataset import data_to_feed_in
+from classes import PyFile
+logging.basicConfig(level=logging.DEBUG)
 
 
 # ======================================
@@ -33,9 +33,9 @@ def default_args():
                       help='Builder')
 
   parser.add_argument('-type', '--type_pruning', type=str,
-                      default='AdaNetO',
-                      choices=['AdaNetO', 'PRSO', 'PAPO', 'PIEO',
-                               'AdaNetW', 'PRSW', 'PAPW', 'PIEW'],
+                      default='SAEP.O', choices=[
+                          'AdaNet.O', 'SAEP.O', 'PRS.O', 'PAP.O', 'PIE.O',
+                          'AdaNet.W', 'SAEP.W', 'PRS.W', 'PAP.W', 'PIE.W'],
                       help='How to prune the AdaNet')
   parser.add_argument('-alpha', '--thinp_alpha', type=float, default=0.5,
                       help='The value of alpha in PIE')
@@ -68,15 +68,23 @@ def default_args():
                       help='LEARN_MIXTURE_WEIGHTS')
   parser.add_argument('-lam', '--adanet_lambda', type=float, default=0,
                       help='ADANET_LAMBDA')
-  return parser
+
+  # return parser
+  args = parser.parse_args()
+  return args
+
+
+# --------------------------------------
+# Logs
 
 
 def default_logs(args, saved='tmpmodels'):
   LOG_TLE = args.dataset
-  if args.cross_validation > 0:
-    LOG_TLE += '_cv' + str(args.cross_validation)
-  else:
-    LOG_TLE += '_sing'
+  LOG_TLE += '_cv' + str(args.cross_validation)
+  LOG_TLE += '_it' + str(args.adanet_iterations)
+  LOG_TLE += '_lr' + str(args.learning_rate)
+  LOG_TLE += '_bs' + str(args.batch_size)
+  LOG_TLE += '_ts' + str(args.train_steps // 1000)
 
   LOG_DIR = os.path.join(os.getcwd(), saved)
   LOG_DIR = os.path.join(LOG_DIR, args.dataset)
@@ -91,36 +99,71 @@ def default_logs(args, saved='tmpmodels'):
   LOG_DIR = os.path.join(LOG_DIR, feat_temp)
   LOG_TLE += '_' + feat_temp
   TF_LOG_TLE += '_' + feat_temp
+  LOG_TLE += '_' + args.model_setting
+  TF_LOG_TLE += '_' + args.model_setting
+
+  thinp_alpha = args.thinp_alpha
+  type_pruning = args.type_pruning
+  LOG_TLE += '_' + type_pruning
+  TF_LOG_TLE += '_' + type_pruning
+  if type_pruning.startswith('PIE'):
+    LOG_TLE += str(thinp_alpha)
+    TF_LOG_TLE += str(thinp_alpha)
+  if type_pruning.endswith('W'):
+    LOG_TLE += str(args.adanet_learn_mixture)
+    TF_LOG_TLE += str(args.adanet_learn_mixture)
+
+  # if args.cross_validation > 0:
+  #   LOG_TLE += '_cv' + str(args.cross_validation)
+  # else:
+  #   LOG_TLE += '_sing'
+  # return LOG_TLE, LOG_DIR, feat_temp
 
   return TF_LOG_TLE, LOG_TLE, LOG_DIR
+
+
+# def default_recs(args, saved='tmpmodels'):
+#   TF_LOG_TLE, LOG_TLE, LOG_DIR = default_logs(args, saved)
+def default_recs(TF_LOG_TLE):
+
+  logger = logging.getLogger('test')
+  formatter = logging.Formatter(
+      '%(asctime)s - %(name)s: %(levelname)s | %(message)s')
+
+  # Logs of TensorFlow
+  # TF_LOG_TLE = args.dataset
+
+  tflog = logging.getLogger('tensorflow')
+  if os.path.exists(TF_LOG_TLE + '.txt'):
+    os.remove(TF_LOG_TLE + '.txt')
+  tf_fh = logging.FileHandler(TF_LOG_TLE + '.txt')
+  tf_fh.setLevel(logging.DEBUG)
+  tf_fm = logging.Formatter(logging.BASIC_FORMAT, None)
+  tf_fh.setFormatter(tf_fm)
+  tflog.addHandler(tf_fh)
+
+  # nb_iter = args.cross_validation
+  # wr_cv = "_cv" + str(i + 1)
+  TF_ARCH = 'architecture-'
+
+  return logger, tflog
 
 
 # --------------------------------------
 # Data set
 
 
-def pillow_rgb_to_grayscale(img):
-  # image: np.ndarray [32, 32, 3]
-  img = Image.fromarray(img)
-  img = img.convert('L')
-  return np.array(img)
+def default_feed(args):
+  datafeed = args.dataset
+  if not args.binary:
+    return data_to_feed_in(datafeed, False)
+
+  c0, c1 = args.label_zero, args.label_one
+  return datafeed(datafeed, True, c0, c1)
 
 
 # ======================================
 # Auxilliary
-
-
-def remove_previous_model(experiment_name, LOG_DIR, logger=None):
-  directory = os.path.join(LOG_DIR, experiment_name)
-  if os.path.exists(directory):
-    shutil.rmtree(directory)
-    if logger:
-      logger.warn("remove_previous_model: {:s}/{:s}"
-                  "".format(LOG_DIR, experiment_name))
-    else:
-      print("remove_previous_model: {:s}/{:s}".format(
-          LOG_DIR, experiment_name))
-  return
 
 
 # --------------------------------------
@@ -180,5 +223,5 @@ def situation_cross_validation(nb_iter, y, split_type='cross_valid_v2'):
     split_idx.append(deepcopy(temp_))
     del k_former, k_middle, k_latter, i_tst, i_val, i_trn
   del k, y, vY, dY, iY, lY, tY, sY, nb_iter
-  gc.collect()
+  # gc.collect()
   return deepcopy(split_idx)

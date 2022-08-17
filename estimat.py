@@ -5,22 +5,23 @@ from __future__ import division
 from __future__ import print_function
 
 
+import os
 import tensorflow.compat.v1 as tf
 
 import adanet
 import adanet.examples_simple_dnn as simple_dnn
-# import adanet.examples_simple_dnn.Generator as SimpleDNNGenerator
 from classes import SimpleCNNGenerator
+
 
 import saep as SAEP
 import saep.examples_simple_dnn as pruned_dnn
-# import saep.examples_simple_dnn.Generator as PrunedDNNGenerator
 
-from classes import PrunedGenerator as PrunedCNNGenerator
+from classes import PrunedCNNGenerator
 from classes import ComplexCNNGenerator
 
 
 # ======================================
+# Model
 
 
 class AbstractCreate(object):
@@ -33,23 +34,27 @@ class AbstractCreate(object):
     self.BATCH_SIZE = batch_size
     self.TRAIN_STEPS = train_steps
 
-  def assign_adanet_para(self, adanet_iterations, adanet_lambda=.99,
-                         learn_mixture_weights=False):
+  def assign_adanet_para(self, adanet_iterations, adanet_lambda=.99):
+    #                      learn_mixture_weights=False):
     self.ADANET_ITERATIONS = adanet_iterations
     self.ADANET_LAMBDA = adanet_lambda
-    self.LEARN_MIXTURE_WEIGHTS = learn_mixture_weights
+    # self.LEARN_MIXTURE_WEIGHTS = learn_mixture_weights
 
   def assign_expt_params(self, n_classes, experiment_name, log_dir):
     self.NUM_CLASS = n_classes
     self.experiment_name = experiment_name  # this_experiment
     self.LOG_DIR = log_dir
 
-  def assign_SAEP_adapru(self, ensemble_pruning,
-                         thinp_alpha, logger, final=False):
+  def assign_SAEP_adapru(self, ensemble_pruning="keep_all",
+                         thinp_alpha=0.5,
+                         logger=None, final=False):
     self.ensemble_pruning = ensemble_pruning
     self.thinp_alpha = thinp_alpha
     self.logger = logger
     self.final = final
+
+  # def assign_SAEP_logger(self, logger=None):
+  #   self.logger = logger
 
   def make_config(self, experiment_name, save_steps=1000):
     model_dir = os.path.join(self.LOG_DIR, experiment_name)
@@ -62,10 +67,12 @@ class AbstractCreate(object):
 
   def train_and_evaluate(self, estimator, input_fn):
     train_spec = tf.estimator.TrainSpec(
-        input_fn=input_fn("train", training=True, batch_size=self.BATCH_SIZE),
+        input_fn=input_fn(
+            "train", training=True, batch_size=self.BATCH_SIZE),
         max_steps=self.TRAIN_STEPS)
     eval_spec = tf.estimator.EvalSpec(
-        input_fn=input_fn("test", training=False, batch_size=self.BATCH_SIZE),
+        input_fn=input_fn(
+            "test", training=False, batch_size=self.BATCH_SIZE),
         steps=None,
         start_delay_secs=1,
         throttle_secs=1)
@@ -74,9 +81,10 @@ class AbstractCreate(object):
         train_spec=train_spec,
         eval_spec=eval_spec)
     results = estimator.evaluate(
-        input_fn=input_fn("test", training=False, batch_size=self.BATCH_SIZE),
+        input_fn=input_fn(
+            "test", training=False, batch_size=self.BATCH_SIZE),
         steps=None)
-    return results
+    return results, estimator
 
   def _new_linear(self, feature_columns, input_fn):
     raise NotImplementedError
@@ -93,13 +101,13 @@ class AbstractCreate(object):
   def create_estimator(self, modeluse, feature_columns, head, input_fn):
     if modeluse == "linear":
       return self._new_linear(feature_columns, input_fn)
-    elif modeluse == "dnn":  # "simple_dnn"
+    elif modeluse == "dnn":
       return self._new_simple_dnn(feature_columns, head, input_fn)
-    elif modeluse == "cnn":  # "simple_cnn"
+    elif modeluse == "cnn":
       return self._new_simple_cnn(feature_columns, head, input_fn)
-    elif modeluse == "cpx":  # "complex_cnn"
+    elif modeluse == "cpx":
       return self._new_complex_cnn(feature_columns, head, input_fn)
-    raise ValueError("Incorrect `modeluse`.")
+    raise ValueError("invalid `modeluse`.")
 
   # for variant
   def ensemble_architecture(self, results):

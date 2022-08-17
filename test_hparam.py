@@ -65,9 +65,8 @@ class TestDataset(unittest.TestCase):
     from dataset import data_to_feed_in
 
     fed_data = 'cifar10'
-    nc, ns, _, X_trn, y_trn, X_tst, y_tst = data_to_feed_in(fed_data)
+    ns, _, X_trn, y_trn, X_tst, y_tst = data_to_feed_in(fed_data)
 
-    self.assertEqual(nc, 10)
     self.assertEqual(ns, (32, 32, 3))
 
     self.assertEqual(ns, X_trn.shape[1:])
@@ -76,8 +75,7 @@ class TestDataset(unittest.TestCase):
     self.assertTrue(X_trn.shape[0] == y_trn.shape[0] == 50000)
     self.assertTrue(X_tst.shape[0] == y_tst.shape[0] == 10000)
 
-    # args.binary = True
-    nc, ns, _, _, y_trn, _, y_tst = data_to_feed_in(fed_data, True)
+    ns, _, _, y_trn, _, y_tst = data_to_feed_in(fed_data, True)
 
     y_unique = np.unique(np.concatenate([y_trn, y_tst]))
     self.assertTrue(4 in y_unique)  # args.label_zero
@@ -87,29 +85,12 @@ class TestDataset(unittest.TestCase):
     from dataset import data_to_feed_in
 
     for fed_data in ['mnist', 'fmnist']:
-      nc, ns, _, X_trn, y_trn, X_tst, y_tst = data_to_feed_in(fed_data)
+      ns, _, X_trn, y_trn, X_tst, y_tst = data_to_feed_in(fed_data)
 
-      self.assertEqual(nc, 10)
       self.assertEqual(ns, (28, 28, 1))
 
       self.assertEqual(ns, X_trn.shape[1:])
       self.assertEqual(ns, X_tst.shape[1:])
 
       self.assertTrue(X_trn.shape[0] == y_trn.shape[0] == 60000)
-      self.assertTrue(X_tst.shape[0] == y_tst.shape[0] == 10000)
-
-  def test_load_more(self):
-    from dataset import data_to_feed_in
-
-    for fed_data in ['cifar100c', 'cifar100f']:
-      # args.dataset = data
-      nc, ns, _, X_trn, y_trn, X_tst, y_tst = data_to_feed_in(fed_data)
-
-      self.assertEqual(nc, 20 if fed_data.endswith('c') else 100)
-      self.assertEqual(ns, (32, 32, 3))
-
-      self.assertEqual(ns, X_trn.shape[1:])
-      self.assertEqual(ns, X_tst.shape[1:])
-
-      self.assertTrue(X_trn.shape[0] == y_trn.shape[0] == 50000)
       self.assertTrue(X_tst.shape[0] == y_tst.shape[0] == 10000)

@@ -6,14 +6,15 @@ from __future__ import print_function
 
 
 import functools
+import json
 import os
 import shutil
 
 import tensorflow.compat.v1 as tf
 import adanet
 
-from saep.subnetwork_generator import Builder as PrunedBuilder
-from saep.subnetwork_generator import Generator as PrunedGenerator
+from saep.subnetwork_generator import Builder as PrunedSubBuilder
+from saep.subnetwork_generator import Generator as PrunedSubGenerator
 from saep.subnetwork_generator import Subnetwork as PrunedSubnetwork
 
 
@@ -181,7 +182,7 @@ class PyFile(object):
 # --------------------------------------
 
 
-class PrunedCNNBuilder(PrunedBuilder):
+class PrunedCNNBuilder(PrunedSubBuilder):
   def __init__(self, learning_rate, max_iteration_steps, seed,
                learn_mixture_weights=False):
     self._learning_rate = learning_rate
@@ -232,7 +233,7 @@ class PrunedCNNBuilder(PrunedBuilder):
     return "pruned_cnn"  # self._name
 
 
-class PrunedCNNGenerator(PrunedGenerator):
+class PrunedCNNGenerator(PrunedSubGenerator):
   def __init__(self, learning_rate, max_iteration_steps, seed=None, learn_mixture_weights=False):
     self._seed = seed
     self._dnn_builder_fn = functools.partial(
@@ -251,7 +252,7 @@ class PrunedCNNGenerator(PrunedGenerator):
 # --------------------------------------
 
 
-class ComplexCNNBuilder(PrunedBuilder):
+class ComplexCNNBuilder(PrunedSubBuilder):
   def __init__(self, learning_rate, max_iteration_steps, seed,
                learn_mixture_weights=False):
     self._learning_rate = learning_rate
@@ -338,7 +339,7 @@ class ComplexCNNBuilder(PrunedBuilder):
     return "pruned_cpx"
 
 
-class ComplexCNNGenerator(PrunedGenerator):
+class ComplexCNNGenerator(PrunedSubGenerator):
   def __init__(self, learning_rate, max_iteration_steps, seed=None, learn_mixture_weights=False):
     self._seed = seed
     self._dnn_builder_fn = functools.partial(
