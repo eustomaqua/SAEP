@@ -23,7 +23,7 @@ import tensorflow.compat.v2 as tf
 _NUM_LAYERS_KEY = "num_layers"
 
 
-class _SimpleDNNBuilder(adanet.subnetwork.Builder):
+class _SimpleDNNBuilder(saep.subnetwork.Builder):
   """Builds a DNN subnetwork for AdaNet."""
 
   def __init__(self, feature_columns, optimizer, layer_size, num_layers,
@@ -94,7 +94,7 @@ class _SimpleDNNBuilder(adanet.subnetwork.Builder):
       summary.scalar("num_layers", self._num_layers)
 
     shared = {_NUM_LAYERS_KEY: self._num_layers}
-    return adanet.Subnetwork(
+    return saep.Subnetwork(
         last_layer=last_layer,
         logits=logits,
         complexity=complexity,
@@ -131,7 +131,7 @@ class _SimpleDNNBuilder(adanet.subnetwork.Builder):
     return "{}_layer_dnn".format(self._num_layers)
 
 
-class Generator(adanet.subnetwork.Generator):
+class Generator(saep.subnetwork.Generator):
   """Generates a two DNN subnetworks at each iteration.
 
   The first DNN has an identical shape to the most recently added subnetwork

@@ -27,9 +27,9 @@ import tensorflow.compat.v2 as tf
 
 
 import tensorflow.compat.v1 as tf_v1
-from data_entropy import pairwise_measure_all_without_label
-from data_entropy import pairwise_measure_all_disagreement
-from data_entropy import PrunedAdanetSelect
+from saep.data_entropy import pairwise_measure_all_without_label
+from saep.data_entropy import pairwise_measure_all_disagreement
+from saep.data_entropy import PrunedAdanetSelect
 import numpy as np
 DTY_INT = 'int32'
 DTY_FLT = 'float32'
@@ -810,6 +810,8 @@ class ComplexityRegularizedEnsembler(Ensembler):
           logits = tf.reshape(logits, [batch_size, -1, logits_size])
       else:
         logits = tf.multiply(logits, weight)
+      # SAEP Notice! Prune the selected sub-architecture by assigning its
+      # weights to be zero.
       if pruned_flag:
         logits = tf.multiply(logits, 0.)
     return logits, weight
