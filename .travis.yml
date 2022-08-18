@@ -29,4 +29,3 @@ after_success:
 env:
   global:
     - CODACY_PROJECT_TOKEN=c71bb70c7b36434c9cc4b4c522b9b6c1
-    - CODECOV_TOKEN = "0e1af558-e8ae-4767-9612-d88ddab8a375"

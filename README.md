@@ -3,6 +3,8 @@
 [![Build Status](https://app.travis-ci.com/eustomaqua/SAEP.svg?branch=master)](https://app.travis-ci.com/eustomaqua/SAEP) 
 [![Coverage Status](https://coveralls.io/repos/github/eustomaqua/SAEP/badge.svg?branch=master)](https://coveralls.io/github/eustomaqua/SAEP?branch=master) 
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/a758b0c84d3d45cb8f1fa414abd64c09)](https://www.codacy.com/gh/eustomaqua/SAEP/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=eustomaqua/SAEP&amp;utm_campaign=Badge_Grade) 
+[![Codacy Badge](https://app.codacy.com/project/badge/Coverage/a758b0c84d3d45cb8f1fa414abd64c09)](https://www.codacy.com/gh/eustomaqua/SAEP/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=eustomaqua/SAEP&amp;utm_campaign=Badge_Coverage) 
+
 
 
 This repository is used to release the code for our paper: ***Sub-Architecture Ensemble Pruning in Neural Architecture Search (SAEP)*** [[arxiv]](https://arxiv.org/abs/1910.00370v2) [[paper]](https://ieeexplore.ieee.org/document/9460115) 
