@@ -120,7 +120,7 @@ def auxrun_expts(type_pruning, thinp_alpha=.5,
 
   this_experiment = os.path.join(experiment_name, type_pruning)
   if type_pruning.endswith('W'):
-    this_experiment += lmw
+    this_experiment += str(lmw)[0]
   if type_pruning.startswith('PIE'):
     this_experiment += str(thinp_alpha)
 
@@ -141,7 +141,6 @@ def run_experiment(X_trn, y_trn, X_tst, y_tst,
   head, feature_columns = establish_baselines(
       NUM_CLASS, NUM_SHAPE, FEATURES_KEY)
 
-  # ' ''
   BK_LOG_TLE = LOG_TLE + wr_cv + '.log'
   if os.path.exists(BK_LOG_TLE):
     os.remove(BK_LOG_TLE)
@@ -150,7 +149,6 @@ def run_experiment(X_trn, y_trn, X_tst, y_tst,
   log_file.setLevel(BK_LOG_LEV)
   log_file.setFormatter(formatter)
   logger.addHandler(log_file)
-  # ' ''
 
   output_starts(logger)
   since = time.time()

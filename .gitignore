@@ -1,11 +1,12 @@
 tmpmodels
 *.csv
 *.log
-*.txt
+*_tf.txt
 *.json
+
 nohup.out
 */nohup.out
-# *nohup.out
+.vscode
 
 
 # Byte-compiled / optimized / DLL files

@@ -36,8 +36,6 @@ from classes import PyFile
 # --------------------------------------
 # Argparser
 
-# logging.basicConfig(level=logging.DEBUG)
-# logging.basicConfig(level=logging.INFO)
 logging.basicConfig(level=BK_LOG_LEV)
 
 args = default_args()
@@ -52,9 +50,10 @@ RANDOM_SEED = None
 if args.random_seed != 'None':
   RANDOM_SEED = int(args.random_seed)
 
-LEARN_MIXTURE_WEIGHTS = False
-if args.adanet_learn_mixture == 'T':
-  LEARN_MIXTURE_WEIGHTS = True
+# LEARN_MIXTURE_WEIGHTS = False
+# if args.adanet_learn_mixture == 'T':
+#   LEARN_MIXTURE_WEIGHTS = True
+LEARN_MIXTURE_WEIGHTS = args.adanet_learn_mixture
 
 
 # --------------------------------------
@@ -157,9 +156,10 @@ formatter = logging.Formatter(
 
 tflog = logging.getLogger('tensorflow')
 tflog = logging.getLogger('tensorflow')
-if os.path.exists(TF_LOG_TLE + '.txt'):
-  os.remove(TF_LOG_TLE + '.txt')
-tf_fh = logging.FileHandler(TF_LOG_TLE + '.txt')
+BK_LOG_TLE = TF_LOG_TLE + '_tf.txt'
+if os.path.exists(BK_LOG_TLE):
+  os.remove(BK_LOG_TLE)
+tf_fh = logging.FileHandler(BK_LOG_TLE)
 # tf_fh.setLevel(logging.DEBUG)
 tf_fh.setLevel(BK_LOG_LEV)
 tf_fm = logging.Formatter(logging.BASIC_FORMAT, None)
@@ -238,18 +238,7 @@ def output_ending(logger, since, wr_cv='_sg'):
   logger.info("The entire duration is: {:.6f} min".format(
       time_elapsed / 60))
 
-  '''
-  logger.info("Saved location:")
-  logger.info("\tLOG_DIR: {:s}".format(LOG_DIR))
-  logger.info("\tLOG_TLE: {:s}".format(LOG_TLE + wr_cv))
-  logger.info("")
-  logger.info("`cuda_device to use GPU =  {}".format(
-      args.cuda_device))
-  logger.info("if successful using gpu =  {}".format(
-      tf.test.is_gpu_available()))
-  '''
   logger.info("-----------\n")
-
   csv_temp = time_elapsed / 60.  # minutes
   return csv_temp
 
@@ -342,9 +331,7 @@ def output_arches(logger, wr_cv='_sg',
 nb_cv = args.cross_validation
 
 if nb_cv <= 1:
-  # wr_cv = '_sing'
-  # wr_cv = ''
-  wr_cv = '_sg'
+  wr_cv = '_sg'  # sing.
 
   run_experiment(X_train, y_train, X_test, y_test,
                  NUM_CLASS, NUM_SHAPE, RANDOM_SEED,
@@ -393,9 +380,6 @@ for fname in glob.glob(discard):
 
 # discard = glob.glob("*.txt")
 # discard.remove("requirements.txt")
-# for fname in discard:
-#   os.remove(fname)
-#   logger.info("Deleted " + fname)
 
 csv_file.close()
 del csv_writer
@@ -403,10 +387,6 @@ del csv_writer
 
 # if __name__ == "__main__":
 #   pass
-#   # output_starts(logger)
-#   # since = time.time()
-#   # output_ending(logger, since)
-#   # output_arches(logger, '_sg')
 
 
 # python main.py -cv 1

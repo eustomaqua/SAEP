@@ -1,0 +1,11 @@
+# .coveragerc to control coverage.py
+
+[run]
+omit =
+  */adanet*
+  *__init__*
+
+[html]
+omit =
+  */adanet*
+  *__init__*

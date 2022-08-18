@@ -6,6 +6,7 @@ from __future__ import print_function
 
 import unittest
 import os
+import shutil
 import numpy as np
 
 from saep.test_utils_const import FIXED_SEED
@@ -14,7 +15,7 @@ from dataset import (FEATURES_KEY,
                      establish_baselines)
 
 from execute import utilise_AdaNet, utilise_SAEP
-from execute import ensemble_pruning_set
+from execute import ensemble_pruning_set, auxrun_expts
 
 
 # --------------------------------------
@@ -48,43 +49,24 @@ X_trn = prng.rand(nb_trn, *nb_shap)
 X_tst = prng.rand(nb_tst, *nb_shap)
 
 this_experiment = 'casual'
-directory = os.path.join(LOG_DIR, this_experiment)
-input_fn = super_input_fn(
-    X_trn, y_trn, X_tst, y_tst, nb_shap, RANDOM_SEED)
-head, feature_columns = establish_baselines(
-    nb_labl, nb_shap, FEATURES_KEY)
+
+
+def _run(tp, lmw, um):
+  experiment_name, this_experiment = auxrun_expts(
+      tp, lmw=lmw, modeluse=um)
+  directory = os.path.join(LOG_DIR, this_experiment)
+  # if os.path.exists(directory):
+  #   shutil.rmtree(directory)
+
+  input_fn = super_input_fn(
+      X_trn, y_trn, X_tst, y_tst, nb_shap, RANDOM_SEED)
+  head, feature_columns = establish_baselines(
+      nb_labl, nb_shap, FEATURES_KEY)
+  return experiment_name, this_experiment, \
+      input_fn, head, feature_columns
 
 
 # --------------------------------------
-
-
-class Test_adanet(unittest.TestCase):
-  def curr(self, tp, lmw=False, um='linear'):
-    if tp.endswith('O'):
-      cs = utilise_AdaNet(tp, modeluse=um)
-    else:
-      cs = utilise_AdaNet(tp, lmw, um)
-
-    cs.assign_expt_params(nb_labl, this_experiment, LOG_DIR)
-    cs.assign_train_param(LEARNING_RATE, BATCH_SIZE, TRAIN_STEPS)
-    cs.assign_adanet_para(ADANET_ITERATIONS, ADANET_LAMBDA)  # ,lmw)
-
-    et = cs.create_estimator(um, feature_columns, head, input_fn)
-    # r, et = cs.train_and_evaluate(et, input_fn)
-
-  def impl(self, tp, lmw=False):
-    if tp.endswith('O'):
-      self.curr(tp, um='dnn')
-      self.curr(tp, um='cnn')
-      self.curr(tp, um='linear')
-      return
-    self.curr(tp, lmw, 'dnn')
-    self.curr(tp, lmw, 'cnn')
-
-  def test_main(self):
-    self.impl('AdaNet.O')
-    self.impl('AdaNet.W', False)
-    self.impl('AdaNet.W', True)
 
 
 class Test_SAEP(unittest.TestCase):
@@ -95,14 +77,16 @@ class Test_SAEP(unittest.TestCase):
       cs = utilise_SAEP(
           tp, learn_mixture_weights=lmw, modeluse=um)
 
-    cs.assign_expt_params(nb_labl, this_experiment, LOG_DIR)
+    exnm, excr, input_fn, head, fcs = _run(tp, lmw, um)
+    cs.assign_expt_params(nb_labl, excr, LOG_DIR)
     cs.assign_train_param(LEARNING_RATE, BATCH_SIZE, TRAIN_STEPS)
     cs.assign_adanet_para(ADANET_ITERATIONS, ADANET_LAMBDA)
 
     ep = tp[:-2]
     cs.assign_SAEP_adapru(ensemble_pruning_set[ep])
     cs.assign_SAEP_logger(logger)
-    et = cs.create_estimator(um, feature_columns, head, input_fn)
+    et = cs.create_estimator(um, fcs, head, input_fn)
+    # r, et = cs.train_and_evaluate(et, input_fn)
 
   def impl(self, tp, lmw=False):
     if tp.endswith('O'):
@@ -145,16 +129,55 @@ class Test_PIE(Test_SAEP):
     else:
       cs = utilise_SAEP(tp, 0.4, lmw, um)
 
-    cs.assign_expt_params(nb_labl, this_experiment, LOG_DIR)
+    _, exnm, input_fn, head, fcs = _run(tp, lmw, um)
+
+    cs.assign_expt_params(nb_labl, exnm, LOG_DIR)
     cs.assign_train_param(LEARNING_RATE, BATCH_SIZE, TRAIN_STEPS)
     cs.assign_adanet_para(ADANET_ITERATIONS, ADANET_LAMBDA)
 
     ep = tp[:-2]
     cs.assign_SAEP_adapru(ensemble_pruning_set[ep], thinp_alpha=.4)
     cs.assign_SAEP_logger(logger)
-    et = cs.create_estimator(um, feature_columns, head, input_fn)
+    et = cs.create_estimator(um, fcs, head, input_fn)
 
   def test_main(self):
     self.impl('PIE.O')
     self.impl('PIE.W', lmw=False)
     self.impl('PIE.W', lmw=True)
+
+
+# --------------------------------------
+
+class Test_adanet(unittest.TestCase):
+  def curr(self, tp, lmw=False, um='linear'):
+    if tp.endswith('O'):
+      cs = utilise_AdaNet(tp, modeluse=um)
+    else:
+      cs = utilise_AdaNet(tp, lmw, um)
+
+    ex_nm, ex_cr, input_fn, head, fcs = _run(tp, lmw, um)
+
+    cs.assign_expt_params(nb_labl, ex_cr, LOG_DIR)
+    cs.assign_train_param(LEARNING_RATE, BATCH_SIZE, TRAIN_STEPS)
+    cs.assign_adanet_para(ADANET_ITERATIONS, ADANET_LAMBDA)
+
+    et = cs.create_estimator(um, fcs, head, input_fn)
+
+    # if um == 'linear':
+    #   return
+    # input_fn = _run(tp, lmw, um)
+    # r, et = cs.train_and_evaluate(et, input_fn)
+
+  def impl(self, tp, lmw=False):
+    if tp.endswith('O'):
+      self.curr(tp, um='dnn')
+      self.curr(tp, um='cnn')
+      self.curr(tp, um='linear')
+      return
+    self.curr(tp, lmw, 'dnn')
+    self.curr(tp, lmw, 'cnn')
+
+  def test_main(self):
+    self.impl('AdaNet.O')
+    self.impl('AdaNet.W', False)
+    self.impl('AdaNet.W', True)

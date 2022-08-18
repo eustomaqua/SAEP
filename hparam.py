@@ -24,9 +24,10 @@ from dataset import data_to_feed_in
 
 def default_args():
   parser = argparse.ArgumentParser()
-  parser.add_argument('-data', '--dataset', type=str, default='cifar10',
+  parser.add_argument('-data', '--dataset', type=str, default='mnist',
                       help='Data set')
-  parser.add_argument('-model', '--model_setting', type=str, default='dnn',
+  parser.add_argument('-model', '--model_setting', type=str,
+                      default='dnn', choices=['dnn', 'cnn'],
                       help='Builder')
 
   parser.add_argument('-type', '--type_pruning', type=str,
@@ -59,10 +60,11 @@ def default_args():
   parser.add_argument('-rs', '--random_seed', type=str, default='None',
                       help='RANDOM_SEED')
 
-  parser.add_argument('-it', '--adanet_iterations', type=int, default=2,
-                      help='ADANET_ITERATIONS')
-  parser.add_argument('-mix', '--adanet_learn_mixture', type=str,
-                      default='F', choices=['T', 'F'],
+  parser.add_argument('-it', '--adanet_iterations', type=int, default=7,
+                      help='ADANET_ITERATIONS')  # 11 or more
+  parser.add_argument('-mix', '--adanet_learn_mixture',
+                      # type=str, default='F', choices=['T', 'F'],
+                      action='store_true',
                       help='LEARN_MIXTURE_WEIGHTS')
   parser.add_argument('-lam', '--adanet_lambda', type=float, default=0,
                       help='ADANET_LAMBDA')
@@ -108,8 +110,9 @@ def default_logs(args, saved='tmpmodels'):
     LOG_TLE += str(thinp_alpha)
     TF_LOG_TLE += str(thinp_alpha)
   if type_pruning.endswith('W'):
-    LOG_TLE += str(args.adanet_learn_mixture)
-    TF_LOG_TLE += str(args.adanet_learn_mixture)
+    lmw = str(args.adanet_learn_mixture)
+    LOG_TLE += lmw[0]
+    TF_LOG_TLE += lmw[0]
 
   # if args.cross_validation > 0:
   #   LOG_TLE += '_cv' + str(args.cross_validation)

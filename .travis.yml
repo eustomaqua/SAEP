@@ -1,0 +1,32 @@
+sudo: false
+
+language: python
+cache: pip
+python:
+  - "3.6"
+
+install:
+  - pip install --upgrade pip
+  - pip install numpy==1.19.5
+  - pip install tensorflow-gpu==2.1.0
+  - pip install pytest==6.2.2
+  - pip install -r requirements.txt
+
+before_script:
+  - pip install coverage
+
+script:
+  - coverage run -m pytest
+  # - coverage report -m
+  - coverage report
+  - coverage html
+  # coverage html -d coverage_html
+
+after_success:
+  - coverage xml
+  - bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage.xml  # coberturb.xml
+
+env:
+  global:
+    - CODACY_PROJECT_TOKEN=c71bb70c7b36434c9cc4b4c522b9b6c1
+    - CODECOV_TOKEN = "0e1af558-e8ae-4767-9612-d88ddab8a375"
