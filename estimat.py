@@ -47,14 +47,15 @@ class AbstractCreate(object):
 
   def assign_SAEP_adapru(self, ensemble_pruning="keep_all",
                          thinp_alpha=0.5,
-                         logger=None, final=False):
+                         # logger=None,
+                         final=False):
     self.ensemble_pruning = ensemble_pruning
     self.thinp_alpha = thinp_alpha
-    self.logger = logger
+    # self.logger = logger
     self.final = final
 
-  # def assign_SAEP_logger(self, logger=None):
-  #   self.logger = logger
+  def assign_SAEP_logger(self, logger=None):
+    self.logger = logger
 
   def make_config(self, experiment_name, save_steps=1000):
     model_dir = os.path.join(self.LOG_DIR, experiment_name)
@@ -137,13 +138,15 @@ class AdaNetOriginal(AbstractCreate):
         config=self.make_config(self.experiment_name))
 
   def _new_simple_dnn(self, feature_columns, head, input_fn):
-    optimizer = tf.train.RMSPropOptimizer(learning_rate=self.LEARNING_RATE)
+    optimizer = tf.train.RMSPropOptimizer(
+        learning_rate=self.LEARNING_RATE)
     subnetwork_generator = simple_dnn.Generator(
         feature_columns=feature_columns,
         optimizer=optimizer,
         seed=self.RANDOM_SEED)
     evaluator = adanet.Evaluator(
-        input_fn=input_fn("train", training=False, batch_size=self.BATCH_SIZE),
+        input_fn=input_fn(
+            "train", training=False, batch_size=self.BATCH_SIZE),
         steps=None)
     return adanet.Estimator(
         head=head,
@@ -159,7 +162,8 @@ class AdaNetOriginal(AbstractCreate):
         max_iteration_steps=max_iteration_steps,
         seed=self.RANDOM_SEED)
     evaluator = adanet.Evaluator(
-        input_fn=input_fn("train", training=False, batch_size=self.BATCH_SIZE),
+        input_fn=input_fn(
+            "train", training=False, batch_size=self.BATCH_SIZE),
         steps=None)
     return adanet.Estimator(
         head=head,
@@ -179,14 +183,16 @@ class AdaNetVariants(AbstractCreate):
     if self.LEARN_MIXTURE_WEIGHTS:
       ensembler_optimizer = tf.train.RMSPropOptimizer(
           learning_rate=self.LEARNING_RATE)
-    optimizer = tf.train.RMSPropOptimizer(learning_rate=self.LEARNING_RATE)
+    optimizer = tf.train.RMSPropOptimizer(
+        learning_rate=self.LEARNING_RATE)
     subnetwork_generator = simple_dnn.Generator(
         feature_columns=feature_columns,
         optimizer=optimizer,
         learn_mixture_weights=self.LEARN_MIXTURE_WEIGHTS,
         seed=self.RANDOM_SEED)
     evaluator = adanet.Evaluator(
-        input_fn=input_fn("train", training=False, batch_size=self.BATCH_SIZE))
+        input_fn=input_fn(
+            "train", training=False, batch_size=self.BATCH_SIZE))
     return adanet.Estimator(
         head=head,
         subnetwork_generator=subnetwork_generator,
@@ -210,7 +216,8 @@ class AdaNetVariants(AbstractCreate):
         max_iteration_steps=max_iteration_steps,
         seed=self.RANDOM_SEED)
     evaluator = adanet.Evaluator(
-        input_fn=input_fn("train", training=False, batch_size=self.BATCH_SIZE),
+        input_fn=input_fn(
+            "train", training=False, batch_size=self.BATCH_SIZE),
         steps=None)
     return adanet.Estimator(
         head=head,
@@ -238,13 +245,15 @@ class AdaPruOriginal(AbstractCreate):
     self.type_pruning = type_pruning
 
   def _new_simple_dnn(self, feature_columns, head, input_fn):
-    optimizer = tf.train.RMSPropOptimizer(learning_rate=self.LEARNING_RATE)
+    optimizer = tf.train.RMSPropOptimizer(
+        learning_rate=self.LEARNING_RATE)
     subnetwork_generator = pruned_dnn.Generator(
         feature_columns=feature_columns,
         optimizer=optimizer,
         seed=self.RANDOM_SEED)
     evaluator = SAEP.Evaluator(
-        input_fn=input_fn("train", training=False, batch_size=self.BATCH_SIZE),
+        input_fn=input_fn(
+            "train", training=False, batch_size=self.BATCH_SIZE),
         steps=None)
     return SAEP.Estimator(
         head=head,
@@ -263,7 +272,8 @@ class AdaPruOriginal(AbstractCreate):
         max_iteration_steps=max_iteration_steps,
         seed=self.RANDOM_SEED)
     evaluator = SAEP.Evaluator(
-        input_fn=input_fn("train", training=False, batch_size=self.BATCH_SIZE),
+        input_fn=input_fn(
+            "train", training=False, batch_size=self.BATCH_SIZE),
         steps=None)
     return SAEP.Estimator(
         head=head,
@@ -274,7 +284,8 @@ class AdaPruOriginal(AbstractCreate):
         config=self.make_config(self.experiment_name),
         ensemble_pruning=self.ensemble_pruning,
         adanet_iterations=self.ADANET_ITERATIONS,
-        thinp_alpha=self.thinp_alpha, logger=self.logger, final=self.final)
+        thinp_alpha=self.thinp_alpha,
+        logger=self.logger, final=self.final)
 
   def _new_complex_cnn(self, feature_columns, head, input_fn):
     max_iteration_steps = self.TRAIN_STEPS // self.ADANET_ITERATIONS
@@ -283,7 +294,8 @@ class AdaPruOriginal(AbstractCreate):
         max_iteration_steps=max_iteration_steps,
         seed=self.RANDOM_SEED)
     evaluator = SAEP.Evaluator(
-        input_fn=input_fn("train", training=False, batch_size=self.BATCH_SIZE),
+        input_fn=input_fn(
+            "train", training=False, batch_size=self.BATCH_SIZE),
         steps=None)
     return SAEP.Estimator(
         head=head,
@@ -294,7 +306,8 @@ class AdaPruOriginal(AbstractCreate):
         config=self.make_config(self.experiment_name),
         ensemble_pruning=self.ensemble_pruning,
         adanet_iterations=self.ADANET_ITERATIONS,
-        thinp_alpha=self.thinp_alpha, logger=self.logger, final=self.final)
+        thinp_alpha=self.thinp_alpha,
+        logger=self.logger, final=self.final)
 
 
 class AdaPruVariants(AbstractCreate):
@@ -307,14 +320,16 @@ class AdaPruVariants(AbstractCreate):
     if self.LEARN_MIXTURE_WEIGHTS:
       ensembler_optimizer = tf.train.RMSPropOptimizer(
           learning_rate=self.LEARNING_RATE)
-    optimizer = tf.train.RMSPropOptimizer(learning_rate=self.LEARNING_RATE)
+    optimizer = tf.train.RMSPropOptimizer(
+        learning_rate=self.LEARNING_RATE)
     subnetwork_generator = pruned_dnn.Generator(
         feature_columns=feature_columns,
         optimizer=optimizer,
         learn_mixture_weights=self.LEARN_MIXTURE_WEIGHTS,
         seed=self.RANDOM_SEED)
     evaluator = SAEP.Evaluator(
-        input_fn=input_fn("train", training=False, batch_size=self.BATCH_SIZE),
+        input_fn=input_fn(
+            "train", training=False, batch_size=self.BATCH_SIZE),
         steps=None)
     return SAEP.Estimator(
         head=head,
@@ -328,7 +343,8 @@ class AdaPruVariants(AbstractCreate):
         config=self.make_config(self.experiment_name),
         ensemble_pruning=self.ensemble_pruning,
         adanet_iterations=self.ADANET_ITERATIONS,
-        thinp_alpha=self.thinp_alpha, logger=self.logger, final=self.final)
+        thinp_alpha=self.thinp_alpha,
+        logger=self.logger, final=self.final)
 
   def _new_simple_cnn(self, feature_columns, head, input_fn):
     ensembler_optimizer = None
@@ -342,7 +358,8 @@ class AdaPruVariants(AbstractCreate):
         learn_mixture_weights=self.LEARN_MIXTURE_WEIGHTS,
         seed=self.RANDOM_SEED)
     evaluator = SAEP.Evaluator(
-        input_fn=input_fn("train", training=False, batch_size=self.BATCH_SIZE),
+        input_fn=input_fn(
+            "train", training=False, batch_size=self.BATCH_SIZE),
         steps=None)
     return SAEP.Estimator(
         head=head,
@@ -357,7 +374,8 @@ class AdaPruVariants(AbstractCreate):
         config=self.make_config(self.experiment_name),
         ensemble_pruning=self.ensemble_pruning,
         adanet_iterations=self.ADANET_ITERATIONS,
-        thinp_alpha=self.thinp_alpha, logger=self.logger, final=self.final)
+        thinp_alpha=self.thinp_alpha,
+        logger=self.logger, final=self.final)
 
   def _new_complex_cnn(self, feature_columns, head, input_fn):
     ensembler_optimizer = None
@@ -371,7 +389,8 @@ class AdaPruVariants(AbstractCreate):
         learn_mixture_weights=self.LEARN_MIXTURE_WEIGHTS,
         seed=self.RANDOM_SEED)
     evaluator = SAEP.Evaluator(
-        input_fn=input_fn("train", training=False, batch_size=self.BATCH_SIZE),
+        input_fn=input_fn(
+            "train", training=False, batch_size=self.BATCH_SIZE),
         steps=None)
     return SAEP.Estimator(
         head=head,
@@ -387,4 +406,5 @@ class AdaPruVariants(AbstractCreate):
         config=self.make_config(self.experiment_name),
         ensemble_pruning=self.ensemble_pruning,
         adanet_iterations=self.ADANET_ITERATIONS,
-        thinp_alpha=self.thinp_alpha, logger=self.logger, final=self.final)
+        thinp_alpha=self.thinp_alpha,
+        logger=self.logger, final=self.final)

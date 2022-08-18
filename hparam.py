@@ -9,12 +9,9 @@ import argparse
 from copy import deepcopy
 import os
 
-import logging
 import numpy as np
 
 from dataset import data_to_feed_in
-from classes import PyFile
-logging.basicConfig(level=logging.DEBUG)
 
 
 # ======================================
@@ -33,9 +30,10 @@ def default_args():
                       help='Builder')
 
   parser.add_argument('-type', '--type_pruning', type=str,
-                      default='SAEP.O', choices=[
-                          'AdaNet.O', 'SAEP.O', 'PRS.O', 'PAP.O', 'PIE.O',
-                          'AdaNet.W', 'SAEP.W', 'PRS.W', 'PAP.W', 'PIE.W'],
+                      default='AdaNet.O', choices=[
+                          # 'SAEP.O' default, 'SAEP.W',
+                          'AdaNet.O', 'PRS.O', 'PAP.O', 'PIE.O',
+                          'AdaNet.W', 'PRS.W', 'PAP.W', 'PIE.W'],
                       help='How to prune the AdaNet')
   parser.add_argument('-alpha', '--thinp_alpha', type=float, default=0.5,
                       help='The value of alpha in PIE')
@@ -81,10 +79,10 @@ def default_args():
 def default_logs(args, saved='tmpmodels'):
   LOG_TLE = args.dataset
   LOG_TLE += '_cv' + str(args.cross_validation)
-  LOG_TLE += '_it' + str(args.adanet_iterations)
-  LOG_TLE += '_lr' + str(args.learning_rate)
-  LOG_TLE += '_bs' + str(args.batch_size)
-  LOG_TLE += '_ts' + str(args.train_steps // 1000)
+  # LOG_TLE += '_it' + str(args.adanet_iterations)
+  # LOG_TLE += '_lr' + str(args.learning_rate)
+  # LOG_TLE += '_bs' + str(args.batch_size)
+  # LOG_TLE += '_ts' + str(args.train_steps // 1000)
 
   LOG_DIR = os.path.join(os.getcwd(), saved)
   LOG_DIR = os.path.join(LOG_DIR, args.dataset)
@@ -122,33 +120,6 @@ def default_logs(args, saved='tmpmodels'):
   return TF_LOG_TLE, LOG_TLE, LOG_DIR
 
 
-# def default_recs(args, saved='tmpmodels'):
-#   TF_LOG_TLE, LOG_TLE, LOG_DIR = default_logs(args, saved)
-def default_recs(TF_LOG_TLE):
-
-  logger = logging.getLogger('test')
-  formatter = logging.Formatter(
-      '%(asctime)s - %(name)s: %(levelname)s | %(message)s')
-
-  # Logs of TensorFlow
-  # TF_LOG_TLE = args.dataset
-
-  tflog = logging.getLogger('tensorflow')
-  if os.path.exists(TF_LOG_TLE + '.txt'):
-    os.remove(TF_LOG_TLE + '.txt')
-  tf_fh = logging.FileHandler(TF_LOG_TLE + '.txt')
-  tf_fh.setLevel(logging.DEBUG)
-  tf_fm = logging.Formatter(logging.BASIC_FORMAT, None)
-  tf_fh.setFormatter(tf_fm)
-  tflog.addHandler(tf_fh)
-
-  # nb_iter = args.cross_validation
-  # wr_cv = "_cv" + str(i + 1)
-  TF_ARCH = 'architecture-'
-
-  return logger, tflog
-
-
 # --------------------------------------
 # Data set
 
@@ -159,7 +130,7 @@ def default_feed(args):
     return data_to_feed_in(datafeed, False)
 
   c0, c1 = args.label_zero, args.label_one
-  return datafeed(datafeed, True, c0, c1)
+  return data_to_feed_in(datafeed, True, c0, c1)
 
 
 # ======================================

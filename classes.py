@@ -129,10 +129,13 @@ class PyFile(object):
     srcfile = os.path.join(srcpath, filename)
     if not os.path.exists(srcfile):
       if logger:
-        logger.error("")
-        logger.error("No such file:   {}".format(srcfile))
+        # logger.error("")
+        # logger.error("No such file:  {}".format(srcfile))
+        logger.info("")
+        logger.info("srcpath:  {}".format(srcpath))
+        logger.info("No such file:  {}".format(filename))
       else:
-        print("\nNo such file:   {}".format(srcfile))
+        print("\nNo such file:  {}".format(filename))
 
       # ls | grep architecture
       archs = os.listdir(srcpath)
@@ -144,7 +147,8 @@ class PyFile(object):
       nums = sorted(int(i) for i in nums)
 
       if logger:
-        logger.error(
+        # logger.error(
+        logger.info(
             "Last arch is:  architecture-{}.json".format(nums[-1]))
       else:
         print("Last arch is:  architecture-{}.json".format(nums[-1]))
@@ -157,7 +161,8 @@ class PyFile(object):
     srcfile = os.path.join(srcpath, filename)
     dstfile = os.path.join(dstpath, dstname + filename)
     if not os.path.exists(srcfile) and logger:
-      logger.error("No such file:  {}".format(srcfile))
+      # logger.error("No such file:  {}".format(srcfile))
+      logger.info("No such file:  {}".format(srcfile))
     elif not os.path.exists(srcfile):
       print("No such file:  {}".format(srcfile))
     shutil.copyfile(srcfile, dstfile)

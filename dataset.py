@@ -116,6 +116,12 @@ def super_input_fn(X_train, y_train, X_test, y_test,
 def establish_baselines(NUM_CLASS, NUM_SHAPE, FEATURES_KEY):
   # A `Head` instance defines the loss function and metrics for `Estimators`.
   head = tf.estimator.MultiClassHead(NUM_CLASS)
+
+  # if NUM_CLASS > 2:
+  #   head = tf.estimator.MultiClassHead(NUM_CLASS)
+  # else:
+  #   head = tf.estimator.BinaryClassHead(NUM_CLASS)
+
   # Some `Estimators` use feature columns to understand their input features.
   feature_columns = [
       tf.feature_column.numeric_column(FEATURES_KEY, shape=NUM_SHAPE)
@@ -185,8 +191,7 @@ def data_to_feed_in(fed_data, binary=False, c0=4, c1=9):
     X_test = X_test[mask_test]
     y_test = y_test[mask_test]
 
-  return NUM_SHAPE, TARGETS, \
-      X_train, y_train, X_test, y_test
+  return NUM_SHAPE, TARGETS, X_train, y_train, X_test, y_test
 
 
 # ======================================

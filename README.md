@@ -46,7 +46,10 @@ $ source activate test
 
 Install packages
 ```shell
-$ pip install -r requirements.txt
+$ pip install numpy==1.19.5
+$ pip install tensorflow-gpu==2.1.0
+
+$ # pip install -r requirements.txt
 ```
 
 Remove a virtual environment

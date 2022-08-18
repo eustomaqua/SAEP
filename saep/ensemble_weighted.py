@@ -574,10 +574,12 @@ class ComplexityRegularizedEnsembler(Ensembler):
                    "".format(np.shape(weak_logits)))
     if len(weak_logits) <= 1:
       return list(range(len(weak_logits)))
-    info = PrunedAdanetSelect(num_classes=logits_dimension, random_seed=random_seed)
+    case = PrunedAdanetSelect(
+        num_classes=logits_dimension, random_seed=random_seed)
     yd_weak = np.array(weak_logits).transpose().tolist()
     y_true = labels.tolist()
-    S2 = info.Greedy(yd_weak, len(weak_logits) - 1, y_true, thinp_alpha)
+    S2 = case.centralised_OMEP(
+        yd_weak, len(weak_logits) - 1, y_true, thinp_alpha)
     if logger is not None:
       logger.debug("{:26s} thinp_alpha= {:.2f}  S2= {}".format('', thinp_alpha, S2))
     return [k for k, v in enumerate(S2) if v]
@@ -680,10 +682,12 @@ class ComplexityRegularizedEnsembler(Ensembler):
       logger.debug(
           "prune_ensem_subroute_PIE | weak_logits.shape= {}".format(
               np.shape(weak_logits)))
-    info = PrunedAdanetSelect(num_classes=logits_dimension, random_seed=random_seed)
+    case = PrunedAdanetSelect(
+        num_classes=logits_dimension, random_seed=random_seed)
     yd_weak = np.array(weak_logits).transpose().tolist()
     y_true = labels.tolist()
-    S2 = info.Greedy(yd_weak, len(weak_logits) - 1, y_true, thinp_alpha)
+    S2 = case.centralised_OMEP(
+        yd_weak, len(weak_logits) - 1, y_true, thinp_alpha)
     if logger is not None:
       logger.debug("{:26s} thinp_alpha= {:.2f}  S2= {}".format('', thinp_alpha, S2))
     return [k for k, v in enumerate(S2) if v]

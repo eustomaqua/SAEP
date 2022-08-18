@@ -398,9 +398,11 @@ class _EnsembleBuilder(object):
                 "instead.")
             keep_indices = prune_previous_ensemble(previous_ensemble)
         if self.logger is not None:
-          self.logger.debug("[core_ensemble_builder.py] prune_previous_ensemble callable={:5s}, len(candidate.subnetwork_builders)={}".format(
-              str(callable(prune_previous_ensemble)),
-              len(candidate.subnetwork_builders)))
+          self.logger.debug(
+              "[core_ensemble_builder.py] prune_previous_ensemble "
+              "callable={:5s}, len(candidate.subnetwork_builders)={}".format(
+                  str(callable(prune_previous_ensemble)),
+                  len(candidate.subnetwork_builders)))
         for i, builder in enumerate(previous_ensemble_spec.subnetwork_builders):
           if i not in keep_indices:
             continue

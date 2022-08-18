@@ -101,6 +101,7 @@ class Test_SAEP(unittest.TestCase):
 
     ep = tp[:-2]
     cs.assign_SAEP_adapru(ensemble_pruning_set[ep])
+    cs.assign_SAEP_logger(logger)
     et = cs.create_estimator(um, feature_columns, head, input_fn)
 
   def impl(self, tp, lmw=False):
@@ -115,8 +116,12 @@ class Test_SAEP(unittest.TestCase):
 
   def test_main(self):
     self.impl('SAEP.O')
-    self.impl('SAEP.W', lmw=False)
-    self.impl('SAEP.W', lmw=True)
+    # self.impl('SAEP.W', lmw=False)
+    # self.impl('SAEP.W', lmw=True)
+
+    self.impl('AdaNet.O')
+    self.impl('AdaNet.W', lmw=False)
+    self.impl('AdaNet.W', lmw=True)
 
 
 class Test_PRS(Test_SAEP):
@@ -146,6 +151,7 @@ class Test_PIE(Test_SAEP):
 
     ep = tp[:-2]
     cs.assign_SAEP_adapru(ensemble_pruning_set[ep], thinp_alpha=.4)
+    cs.assign_SAEP_logger(logger)
     et = cs.create_estimator(um, feature_columns, head, input_fn)
 
   def test_main(self):
