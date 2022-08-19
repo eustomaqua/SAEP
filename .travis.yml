@@ -14,6 +14,7 @@ install:
 
 before_script:
   - pip install coverage
+  - pip install coveralls
 
 script:
   - coverage run -m pytest
@@ -25,7 +26,9 @@ script:
 after_success:
   - coverage xml
   - bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage.xml  # coberturb.xml
+  - coveralls
 
 env:
   global:
     - CODACY_PROJECT_TOKEN=c71bb70c7b36434c9cc4b4c522b9b6c1
+    - COVERALLS_REPO_TOKEN=nCB5JYObmTmIAm6UEvTvGXyr591TsddfP

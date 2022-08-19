@@ -5,7 +5,9 @@ omit =
   */adanet*
   *__init__*
 
-[html]
+[report]
 omit =
   */adanet*
   *__init__*
+
+[html]
