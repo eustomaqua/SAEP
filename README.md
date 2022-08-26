@@ -11,9 +11,9 @@ This repository is used to release the code for our paper: ***Sub-Architecture E
 
 The code is conducted based on [AdaNet](https://github.com/tensorflow/adanet), with critical modifications in the searching process: We intend to prune the ensemble architecture on-the-fly based on various criteria and keep more valuable subarchitectures in the end; The criteria used to decide which subarchitectures will be pruned have three proposed solutions here in our SAEP, that is,
 
-- *Pruning by Random Selection (PRS)*
-- *Pruning by Accuracy Performance (PAP)*
-- *Pruning by Information Entropy (PIE)*
+- *Pruning by Random Selection (PRS)*,
+- *Pruning by Accuracy Performance (PAP)*, and
+- *Pruning by Information Entropy (PIE)*.
 
 
 ## Getting Started

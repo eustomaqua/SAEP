@@ -33,8 +33,8 @@ def default_args():
   parser.add_argument('-type', '--type_pruning', type=str,
                       default='AdaNet.O', choices=[
                           # 'SAEP.O' default, 'SAEP.W',
-                          'AdaNet.O', 'PRS.O', 'PAP.O', 'PIE.O',
-                          'AdaNet.W', 'PRS.W', 'PAP.W', 'PIE.W'],
+                          'AdaNet.O', 'SAEP.O', 'PRS.O', 'PAP.O', 'PIE.O',
+                          'AdaNet.W', 'SAEP.W', 'PRS.W', 'PAP.W', 'PIE.W'],
                       help='How to prune the AdaNet')
   parser.add_argument('-alpha', '--thinp_alpha', type=float, default=0.5,
                       help='The value of alpha in PIE')
