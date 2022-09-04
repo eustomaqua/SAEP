@@ -39,8 +39,9 @@ def default_args():
   parser.add_argument('-alpha', '--thinp_alpha', type=float, default=0.5,
                       help='The value of alpha in PIE')
 
-  parser.add_argument('-cv', '--cross_validation', type=int, default=5,
-                      help='Cross validation')
+  parser.add_argument('-cv', '--cross_validation', type=int, default=1,
+                      #  1 means no cross_validation
+                      help='Cross validation')  # or 5
   parser.add_argument('-bi', '--binary', action='store_true',
                       help='binary classification (pairs)')
   parser.add_argument('-c0', '--label_zero', type=int, default=4,
@@ -64,8 +65,7 @@ def default_args():
                       help='ADANET_ITERATIONS')  # 11 or more
   parser.add_argument('-mix', '--adanet_learn_mixture',
                       # type=str, default='F', choices=['T', 'F'],
-                      action='store_true',
-                      help='LEARN_MIXTURE_WEIGHTS')
+                      action='store_true', help='LEARN_MIXTURE_WEIGHTS')
   parser.add_argument('-lam', '--adanet_lambda', type=float, default=0,
                       help='ADANET_LAMBDA')
 

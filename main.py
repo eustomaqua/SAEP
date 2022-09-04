@@ -26,7 +26,7 @@ from hparam import (default_args, default_logs, default_feed,
                     situation_cross_validation)
 from execute import (utilise_SAEP, auxrun_expts, output_starts,
                      run_experiment, BK_LOG_LEV)
-from classes import PyFile
+# from classes import PyFile
 
 
 # ======================================
@@ -61,6 +61,11 @@ LEARN_MIXTURE_WEIGHTS = args.adanet_learn_mixture
 
 thinp_alpha = args.thinp_alpha
 type_pruning = args.type_pruning
+if 'AdaNet' in type_pruning:
+  type_pruning = type_pruning.replace('AdaNet', 'SAEP')
+
+# Note that `SAEP` is actually AdaNet just using `saep` to implement,
+# in order to get some values to compare with PRS/PAP/PIE.
 
 
 # --------------------------------------
@@ -119,7 +124,7 @@ else:
   raise ValueError("invalid `type_pruning`.")
 '''
 
-if type_pruning[:-2] not in ['AdaNet', 'PRS', 'PAP', 'PIE']:
+if type_pruning[:-2] not in ['SAEP', 'PRS', 'PAP', 'PIE']:
   raise ValueError("`type_pruning` invalid, {}."
                    "".format(type_pruning[:-2]))
 creator = utilise_SAEP(type_pruning, thinp_alpha,
@@ -167,7 +172,7 @@ tflog.addHandler(tf_fh)
 
 TF_ARCH = 'architecture-{}.json'.format(ADANET_ITERATIONS - 1)
 TF_SRCP = os.path.join(LOG_DIR, this_experiment)
-TF_FILE = PyFile()
+# TF_FILE = PyFile()
 
 csv_file = open(LOG_TLE + '.csv', 'w', newline="")
 csv_writer = csv.writer(csv_file)
@@ -188,12 +193,13 @@ nb_cv = args.cross_validation
 if nb_cv <= 1:
   wr_cv = '_sg'  # sing.
 
-  output_starts(logger, args, RANDOM_SEED, LOG_DIR, TF_LOG_TLE,
-                experiment_name, this_experiment, directory)
   run_experiment(X_train, y_train, X_test, y_test,
                  NUM_CLASS, NUM_SHAPE, RANDOM_SEED,
-                 LOG_TLE, wr_cv, logger, formatter,
-                 creator, modeluse, TF_ARCH, TF_LOG_TLE)
+                 LOG_TLE, wr_cv, logger, formatter, csv_writer,
+                 creator, modeluse, TF_ARCH, TF_SRCP,
+                 TF_LOG_TLE, type_pruning,
+                 experiment_name, this_experiment,
+                 LOG_DIR, directory, args)
 
   sys.exit()
 
@@ -218,12 +224,14 @@ for i in range(nb_cv):
   del idx_trn, idx_tst
 
   wr_cv = "_cv" + str(i + 1)
-  output_starts(logger, args, RANDOM_SEED, LOG_DIR, TF_LOG_TLE,
-                experiment_name, this_experiment, directory)
   run_experiment(X_trn, y_trn, X_tst, y_tst,
                  NUM_CLASS, NUM_SHAPE, RANDOM_SEED,
-                 LOG_TLE, wr_cv, logger, formatter,
-                 creator, modeluse, TF_ARCH, TF_LOG_TLE)
+                 LOG_TLE, wr_cv, logger, formatter, csv_writer,
+                 creator, modeluse, TF_ARCH, TF_SRCP,
+                 TF_LOG_TLE, type_pruning,
+                 experiment_name, this_experiment,
+                 LOG_DIR, directory, args)
+  del X_trn, y_trn, X_tst, y_tst
 
 
 # -----------------------------------------

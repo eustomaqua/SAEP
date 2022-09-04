@@ -15,13 +15,16 @@ import numpy as np
 
 from estimat import AdaNetOriginal, AdaNetVariants
 from estimat import AdaPruOriginal, AdaPruVariants
+from classes import PyFile
 
 from dataset import super_input_fn, establish_baselines, FEATURES_KEY
 import tensorflow.compat.v1 as tf
 
+
 BK_LOG_LEV = logging.INFO
 # BK_LOG_LEV = logging.DEBUG
 logging.basicConfig(level=BK_LOG_LEV)
+TF_FILE = PyFile()
 
 
 # ======================================
@@ -155,12 +158,12 @@ def output_starts(logger, args, RANDOM_SEED,
   logger.info("cuda_device to use GPU = {}".format(args.cuda_device))
   logger.info("whether usage succeeds = {}".format(
       tf.test.is_gpu_available()))
-  logger.info("type_pruning         = {}".format(type_pruning))
+  logger.info("type_pruning           = {}".format(type_pruning))
   if type_pruning.startswith('PIE'):
-    logger.info("thinp_alpha (alpha)  = {}".format(thinp_alpha))
+    logger.info("thinp_alpha (alpha)    = {}".format(thinp_alpha))
   if type_pruning.endswith('W'):
     logger.info(
-        "LEARN_MIXTURE_WEIGHTS= {}".format(LEARN_MIXTURE_WEIGHTS))
+        "LEARN_MIXTURE_WEIGHTS  = {}".format(LEARN_MIXTURE_WEIGHTS))
   logger.info("")
 
   LEARNING_RATE = args.learning_rate
@@ -183,8 +186,10 @@ def output_starts(logger, args, RANDOM_SEED,
                 "".format(LOG_DIR, this_experiment))
   logger.info("experiment_name: {}".format(experiment_name))
   logger.info("this_experiment: {}".format(this_experiment))
-  # logger.info("-----------\n\n")
-  logger.info("-----------\n")
+
+  logger.info("")
+  logger.info("-----------")
+  # logger.info("-----------\n")
   return
 
 
@@ -205,18 +210,18 @@ def output_ending(logger, since, wr_cv='_sg', experiment_name=''):
   logger.info("The entire duration is: {:.6f} min".format(
       time_elapsed / 60))
 
-  logger.info("-----------\n")
+  # logger.info("-----------\n")
+  logger.info("")
+  logger.info("-----------")
   csv_temp = time_elapsed / 60.  # minutes
   return csv_temp
 
 
-# def output_arches(logger, wr_cv='_sg',
-#                   csv_temp=(), csv_rows=(), arch=TF_ARCH):
-
-def output_arches(logger, TF_LOG_TLE, arch, wr_cv='_sg',
-                  csv_temp=(), csv_rows=()):
-  TF_FILE = arch
-  TF_ARCH = TF_FILE.find_architecture(arch, TF_SRCP, logger)
+def output_arches(logger, TF_LOG_TLE, arch, srcp, wr_cv='_sg',
+                  csv_temp=(), csv_rows=(), csv_writer=None,
+                  experiment_name='', this_experiment=''):
+  TF_ARCH, TF_SRCP = arch, srcp
+  TF_ARCH = TF_FILE.find_architecture(TF_ARCH, TF_SRCP, logger)
 
   # TF_ARCH = TF_FILE.find_architecture(TF_ARCH, TF_SRCP, logger)
   TF_FILE.copy_architecture(TF_ARCH, TF_SRCP, './',
@@ -249,9 +254,13 @@ def output_arches(logger, TF_LOG_TLE, arch, wr_cv='_sg',
         subnetworks[k]["builder_name"]))
     number_temp.append(subnetworks[k]["iteration_number"])
   logger.info("\t`No. iteration` subnets: {}".format(number_temp))
+
   logger.info("")
   logger.info("-----------")
+  logger.info("\n\n")
 
+  if not csv_writer:
+    return
   csv_writer.writerow([
       'experiment_name', 'type_pruning', 'wr_cv',
       'average_loss', 'accuracy (%)',
@@ -277,9 +286,12 @@ def output_arches(logger, TF_LOG_TLE, arch, wr_cv='_sg',
   ]
 
   csv_writer.writerow(csv_temp)
+  if not csv_rows:
+    return
   csv_writer.writerow(csv_rows[0])
   for ijk in csv_rows[1:]:
-    csv_writer.writerow(['', '', ''] + ijk)
+    # csv_writer.writerow(['', '', ''] + ijk)
+    csv_writer.writerow(ijk)
   # csv_writer.writerows(csv_rows)
 
   """
@@ -302,12 +314,10 @@ def output_arches(logger, TF_LOG_TLE, arch, wr_cv='_sg',
 def run_SAEP_experiment(X_trn, y_trn, X_tst, y_tst,
                         NUM_CLASS, NUM_SHAPE, RANDOM_SEED,
                         LOG_TLE, wr_cv,
-                        logger, formatter,
-                        # creator, modeluse,
-                        # # output_starts,
-                        # output_ending, output_arches):
-                        creator, modeluse, arch,
-                        TF_LOG_TLE, experiment_name):
+                        logger, formatter, csv_writer,
+                        creator, modeluse, arch, srcp,
+                        TF_LOG_TLE, experiment_name, this_experiment,
+                        LOG_DIR, directory, args):
   input_fn = super_input_fn(
       X_trn, y_trn, X_tst, y_tst, NUM_SHAPE, RANDOM_SEED)
   head, feature_columns = establish_baselines(
@@ -323,6 +333,9 @@ def run_SAEP_experiment(X_trn, y_trn, X_tst, y_tst,
   logger.addHandler(log_file)
 
   # output_starts(logger)
+  output_starts(logger, args, RANDOM_SEED,
+                TF_LOG_TLE, LOG_TLE, LOG_DIR,
+                experiment_name, this_experiment, directory)
   since = time.time()
 
   estimator = creator.create_estimator(
@@ -334,6 +347,7 @@ def run_SAEP_experiment(X_trn, y_trn, X_tst, y_tst,
   diver_weight = estimator._diver_weight
   diver_subnet = estimator._diver_subnet
 
+  logger.info("")
   logger.info("Accuracy: {}".format(results["accuracy"]))
   logger.info("Loss: {}".format(results["average_loss"]))
 
@@ -369,22 +383,24 @@ def run_SAEP_experiment(X_trn, y_trn, X_tst, y_tst,
 
   csv_rows = [[
       'adanet_loss', 'diver_weight', 'diver_subnet',
-      '', 'len=', len(adanet_loss)]]
+      '', 'len={}'.format(len(adanet_loss))]]
   for i, j, k in zip(adanet_loss, diver_weight, diver_subnet):
     # csv_rows.append(['', '', '', i, j, k])
     csv_rows.append([i, j, k])
   # output_arches(logger, wr_cv, csv_temp, csv_rows)
-  output_arches(logger, TF_LOG_TLE, arch, wr_cv, csv_temp, csv_rows)
+  output_arches(
+      logger, TF_LOG_TLE, arch, srcp,
+      wr_cv, csv_temp, csv_rows, csv_writer,
+      experiment_name, this_experiment)
 
 
 def run_AdaNet_experiment(X_trn, y_trn, X_tst, y_tst,
                           NUM_CLASS, NUM_SHAPE, RANDOM_SEED,
                           LOG_TLE, wr_cv,
-                          logger, formatter,
-                          # creator, modeluse,
-                          # output_ending):  # , output_arches):
-                          creator, modeluse, arch,
-                          TF_LOG_TLE, experiment_name):
+                          logger, formatter, csv_writer,
+                          creator, modeluse, arch, srcp,
+                          TF_LOG_TLE, experiment_name, this_experiment,
+                          LOG_DIR, directory, args):
   input_fn = super_input_fn(
       X_trn, y_trn, X_tst, y_tst, NUM_SHAPE, RANDOM_SEED)
   head, feature_columns = establish_baselines(
@@ -398,7 +414,9 @@ def run_AdaNet_experiment(X_trn, y_trn, X_tst, y_tst,
   log_file.setFormatter(formatter)
   logger.addHandler(log_file)
 
-  # output_starts(logger)
+  output_starts(logger, args, RANDOM_SEED,
+                TF_LOG_TLE, LOG_TLE, LOG_DIR,
+                experiment_name, this_experiment, directory)
   since = time.time()
 
   estimator = creator.create_estimator(
@@ -419,29 +437,38 @@ def run_AdaNet_experiment(X_trn, y_trn, X_tst, y_tst,
   diversity = ''
 
   csv_temp = [
-      avg_loss, accuracy * 100, diversity, csv_temp]
-  output_arches(logger, TF_LOG_TLE, arch, wr_cv, csv_temp)
+      avg_loss, accuracy * 100, diversity, diversity, csv_temp]
+  output_arches(
+      logger, TF_LOG_TLE, arch, srcp, wr_cv, csv_temp,
+      csv_writer=csv_writer,
+      experiment_name=experiment_name,
+      this_experiment=experiment_name)
 
 
 def run_experiment(X_trn, y_trn, X_tst, y_tst,
                    NUM_CLASS, NUM_SHAPE, RANDOM_SEED,
                    LOG_TLE, wr_cv,
-                   logger, formatter,
-                   creator, modeluse, arch,
+                   logger, formatter, csv_writer,
+                   creator, modeluse, arch, srcp,
                    TF_LOG_TLE, type_pruning,
-                   experiment_name):
+                   experiment_name, this_experiment,
+                   LOG_DIR, directory, args):
   if type_pruning.startswith('AdaNet'):
     run_AdaNet_experiment(X_trn, y_trn, X_tst, y_tst,
                           NUM_CLASS, NUM_SHAPE, RANDOM_SEED,
                           LOG_TLE, wr_cv,
-                          logger, formatter,
-                          creator, modeluse, arch, TF_LOG_TLE,
-                          experiment_name)
+                          logger, formatter, csv_writer,
+                          creator, modeluse, arch, srcp,
+                          TF_LOG_TLE,
+                          experiment_name, this_experiment,
+                          LOG_DIR, directory, args)
   else:
     run_SAEP_experiment(
         X_trn, y_trn, X_tst, y_tst,
         NUM_CLASS, NUM_SHAPE, RANDOM_SEED,
         LOG_TLE, wr_cv,
-        logger, formatter,
-        creator, modeluse, arch, TF_LOG_TLE,
-        experiment_name)
+        logger, formatter, csv_writer,
+        creator, modeluse, arch, srcp,
+        TF_LOG_TLE,
+        experiment_name, this_experiment,
+        LOG_DIR, directory, args)

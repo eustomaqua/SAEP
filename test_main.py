@@ -169,17 +169,16 @@ nb_cv = args.cross_validation
 if nb_cv <= 1:
   wr_cv = '_sg'  # sing.
 
-  output_starts(logger, args, RANDOM_SEED,  # LOG_DIR,
-                TF_LOG_TLE, LOG_TLE, LOG_DIR,
-                experiment_name, this_experiment, directory)
+  # output_starts(logger, args, RANDOM_SEED,  # LOG_DIR,
+  #               TF_LOG_TLE, LOG_TLE, LOG_DIR,
+  #               experiment_name, this_experiment, directory)
   run_experiment(X_train, y_train, X_test, y_test,
                  NUM_CLASS, NUM_SHAPE, RANDOM_SEED,
                  LOG_TLE, wr_cv, logger, formatter,
-                 creator, modeluse,
-                 # # output_starts,
-                 # output_ending, output_arches
-                 TF_ARCH, TF_LOG_TLE, type_pruning,
-                 experiment_name)
+                 csv_writer, creator, modeluse,
+                 TF_ARCH, TF_SRCP, TF_LOG_TLE, type_pruning,
+                 experiment_name, this_experiment,
+                 LOG_DIR, directory, args)
 
   sys.exit()
 
@@ -201,17 +200,19 @@ for i in range(nb_cv):
   del idx_trn, idx_tst
 
   wr_cv = "_cv" + str(i + 1)
-  output_starts(logger, args, RANDOM_SEED,  # LOG_DIR,
-                TF_LOG_TLE, LOG_TLE, LOG_DIR,
-                experiment_name, this_experiment, directory)
+  # output_starts(logger, args, RANDOM_SEED,
+  #               TF_LOG_TLE, LOG_TLE, LOG_DIR,
+  #               experiment_name, this_experiment, directory)
   run_experiment(X_trn, y_trn, X_tst, y_tst,
                  NUM_CLASS, NUM_SHAPE, RANDOM_SEED,
                  LOG_TLE, wr_cv, logger, formatter,
-                 creator, modeluse,
+                 csv_writer, creator, modeluse,
                  # # output_starts,
                  # output_ending, output_arches
-                 TF_ARCH, TF_LOG_TLE, type_pruning,
-                 experiment_name)
+                 TF_ARCH, TF_SRCP, TF_LOG_TLE, type_pruning,
+                 experiment_name, this_experiment,
+                 LOG_DIR, directory, args)
+  del X_trn, y_trn, X_tst, y_tst
 
 # ------------------------------------
 
