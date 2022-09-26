@@ -2,12 +2,15 @@
 
 [run]
 omit =
-  */adanet*
+  ./adanet*
+  ./test_main*
+  ./atpt_main*
   *__init__*
 
 [report]
 omit =
   */adanet*
+  ./test_main*
   *__init__*
 
 [html]

@@ -46,8 +46,7 @@ class AbstractCreate(object):
     self.LOG_DIR = log_dir
 
   def assign_SAEP_adapru(self, ensemble_pruning="keep_all",
-                         thinp_alpha=0.5,
-                         # logger=None,
+                         thinp_alpha=0.5,  # logger=None,
                          final=False):
     self.ensemble_pruning = ensemble_pruning
     self.thinp_alpha = thinp_alpha
@@ -102,13 +101,13 @@ class AbstractCreate(object):
   def create_estimator(self, modeluse, feature_columns, head, input_fn):
     if modeluse == "linear":
       return self._new_linear(feature_columns, input_fn)
-    elif modeluse == "dnn":
+    elif modeluse == "dnn":  # "simple_dnn"
       return self._new_simple_dnn(feature_columns, head, input_fn)
-    elif modeluse == "cnn":
+    elif modeluse == "cnn":  # "simple_cnn"
       return self._new_simple_cnn(feature_columns, head, input_fn)
-    elif modeluse == "cpx":
+    elif modeluse == "cpx":  # "complex_cnn"
       return self._new_complex_cnn(feature_columns, head, input_fn)
-    raise ValueError("invalid `modeluse`.")
+    raise ValueError("invalid `modeluse`, {}.".format(modeluse))
 
   # for variant
   def ensemble_architecture(self, results):
@@ -263,7 +262,8 @@ class AdaPruOriginal(AbstractCreate):
         config=self.make_config(self.experiment_name),
         ensemble_pruning=self.ensemble_pruning,
         adanet_iterations=self.ADANET_ITERATIONS,
-        thinp_alpha=self.thinp_alpha, logger=self.logger, final=self.final)
+        thinp_alpha=self.thinp_alpha,
+        logger=self.logger, final=self.final)
 
   def _new_simple_cnn(self, feature_columns, head, input_fn):
     max_iteration_steps = self.TRAIN_STEPS // self.ADANET_ITERATIONS

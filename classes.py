@@ -10,12 +10,13 @@ import json
 import os
 import shutil
 
+import re
 import tensorflow.compat.v1 as tf
 import adanet
 
-from saep.subnetwork_generator import Builder as PrunedSubBuilder
+from saep.subnetwork_generator import Subnetwork as PrunedSubSubnetwork
 from saep.subnetwork_generator import Generator as PrunedSubGenerator
-from saep.subnetwork_generator import Subnetwork as PrunedSubnetwork
+from saep.subnetwork_generator import Builder as PrunedSubBuilder
 
 
 # --------------------------------------
@@ -64,8 +65,8 @@ class SimpleCNNBuilder(adanet.subnetwork.Builder):
                                    kernel_initializer=kernel_initializer)(x)
     # Use a constant complexity measure, since all subnetworks have the same
     # architecture and hyperparameters.
-    complexity = tf.constant(1)
 
+    complexity = tf.constant(1)
     return adanet.Subnetwork(last_layer=x, logits=logits,
                              complexity=complexity, persisted_tensors={})
 
@@ -88,7 +89,7 @@ class SimpleCNNBuilder(adanet.subnetwork.Builder):
   @property
   def name(self):
     """See `adanet.subnetwork.Builder`."""
-    return "simple_cnn"
+    return "simple_cnn"  # self._name
 
 
 class SimpleCNNGenerator(adanet.subnetwork.Generator):
@@ -128,30 +129,20 @@ class PyFile(object):
   def find_architecture(self, filename, srcpath, logger=None):
     srcfile = os.path.join(srcpath, filename)
     if not os.path.exists(srcfile):
-      if logger:
-        # logger.error("")
-        # logger.error("No such file:  {}".format(srcfile))
-        logger.info("")
-        logger.info("srcpath:  {}".format(srcpath))
-        logger.info("No such file:  {}".format(filename))
-      else:
-        print("\nNo such file:  {}".format(filename))
+      logger.error("")
+      logger.error("No such file:   {}".format(srcfile))
 
       # ls | grep architecture
       archs = os.listdir(srcpath)
       archs = list(filter(lambda x: 'architecture' in x, archs))
+      # archs = list(filter(lambda x: re.search(r'architecture', x), archs))
       archs = sorted(archs)
 
       nums = [i.split('-')[1] for i in archs]
       nums = [i.split('.')[0] for i in nums]
       nums = sorted(int(i) for i in nums)
 
-      if logger:
-        # logger.error(
-        logger.info(
-            "Last arch is:  architecture-{}.json".format(nums[-1]))
-      else:
-        print("Last arch is:  architecture-{}.json".format(nums[-1]))
+      logger.error("Last arch is:  architecture-{}.json".format(nums[-1]))
       return 'architecture-{}.json'.format(nums[-1])
 
     return filename
@@ -160,22 +151,13 @@ class PyFile(object):
                         dstname='', logger=None):
     srcfile = os.path.join(srcpath, filename)
     dstfile = os.path.join(dstpath, dstname + filename)
-    if not os.path.exists(srcfile) and logger:
-      # logger.error("No such file:  {}".format(srcfile))
-      logger.info("No such file:  {}".format(srcfile))
-    elif not os.path.exists(srcfile):
-      print("No such file:  {}".format(srcfile))
+    if not os.path.exists(srcfile):
+      logger.error("No such file:  {}".format(srcfile))
     shutil.copyfile(srcfile, dstfile)
 
-    if logger:
-      logger.info("Copy architecture-?.json")
-      logger.info("\tSrc path:  {}".format(srcfile))
-      logger.info("\tDst path:  {}".format(dstfile))
-    else:
-      print("Copy architecture-?.json")
-      print("\tSrc path:  {}".format(srcfile))
-      print("\tDst path:  {}".format(dstfile))
-    return
+    logger.info("Copy architecture-?.json")
+    logger.info("\tSrc path:  {}".format(srcfile))
+    logger.info("\tDst path:  {}".format(dstfile))
 
   def read_architecture(self, filename, dstpath='./'):
     dstfile = os.path.join(dstpath, filename)
@@ -211,17 +193,15 @@ class PrunedCNNBuilder(PrunedSubBuilder):
     logits = tf.keras.layers.Dense(units=10, activation=None,
                                    kernel_initializer=kernel_initializer)(x)
     complexity = tf.constant(1)
-    return PrunedSubnetwork(last_layer=x, logits=logits,
-                            complexity=complexity, persisted_tensors={})
+    return PrunedSubSubnetwork(last_layer=x, logits=logits,
+                               complexity=complexity, persisted_tensors={})
 
   def build_subnetwork_train_op(self, subnetwork, loss, var_list, labels, 
-                                iteration_step, summary,
-                                previous_ensemble=None):
+                                iteration_step, summary, previous_ensemble=None):
     """See `adanet.subnetwork.Builder`."""
-    learning_rate = tf.train.cosine_decay(
-        learning_rate=self._learning_rate,
-        global_step=iteration_step,
-        decay_steps=self._max_iteration_steps)
+    learning_rate = tf.train.cosine_decay(learning_rate=self._learning_rate,
+                                          global_step=iteration_step,
+                                          decay_steps=self._max_iteration_steps)
     self._optimizer = tf.train.MomentumOptimizer(learning_rate, .9)
     return self._optimizer.minimize(loss=loss, var_list=var_list)
 
@@ -258,8 +238,7 @@ class PrunedCNNGenerator(PrunedSubGenerator):
 
 
 class ComplexCNNBuilder(PrunedSubBuilder):
-  def __init__(self, learning_rate, max_iteration_steps, seed,
-               learn_mixture_weights=False):
+  def __init__(self, learning_rate, max_iteration_steps, seed, learn_mixture_weights=False):
     self._learning_rate = learning_rate
     self._max_iteration_steps = max_iteration_steps
     self._seed = seed
@@ -320,8 +299,9 @@ class ComplexCNNBuilder(PrunedSubBuilder):
     logits = tf.keras.layers.Dense(units=logits_dimension, activation=None,
                                    kernel_initializer=kernel_initializer)(x)
     complexity = tf.constant(1)
-    return PrunedSubnetwork(last_layer=x, logits=logits,
-                            complexity=complexity, persisted_tensors={})
+    return PrunedSubSubnetwork(last_layer=x, logits=logits,
+                               complexity=complexity,
+                               persisted_tensors={})
 
   def build_subnetwork_train_op(self, subnetwork, loss, var_list, labels,
                                 iteration_step, summary,
@@ -341,7 +321,7 @@ class ComplexCNNBuilder(PrunedSubBuilder):
 
   @property
   def name(self):
-    return "pruned_cpx"
+    return "pruned_cpx"  # complex cnn
 
 
 class ComplexCNNGenerator(PrunedSubGenerator):

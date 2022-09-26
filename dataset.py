@@ -10,32 +10,32 @@ import time
 import tensorflow.compat.v1 as tf
 
 
-# ======================================
+# =====================================
 # Preliminaries
 
-# --------------------------------------
+# -------------------------------------
 # Packages
 
 
 # gc.enable()
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
 GPU_OPTIONS = tf.compat.v1.GPUOptions(allow_growth=True)
 CONFIG = tf.compat.v1.ConfigProto(gpu_options=GPU_OPTIONS)
 
 
-# --------------------------------------
+# -------------------------------------
 # Hyper-Parameters
 
 
 DTY_FLT = 'float32'
 DTY_INT = 'int32'
 
-
 # 2. supply the data in TensorFlow
 FEATURES_KEY = "images"
 
 
-# --------------------------------------
+# -------------------------------------
 # 2. supply the data in TensorFlow
 
 
@@ -69,54 +69,19 @@ def preprocess_image_32(image, label):
   return features, label
 
 
-def super_input_fn(X_train, y_train, X_test, y_test,
-                   NUM_SHAPE, RANDOM_SEED):
-  def input_fn(partition, training, batch_size):
-    # Generate an input_fn for the Estimator.
-    def _input_fn():
-
-      if partition == "train":
-        dataset = tf.data.Dataset.from_generator(
-            generator(X_train, y_train), (DTY_FLT, DTY_INT), (NUM_SHAPE, ()))
-      elif partition == "predict":
-        dataset = tf.data.Dataset.from_generator(generator(
-            X_test[:30], y_test[:30]), (DTY_FLT, DTY_INT), (NUM_SHAPE, ()))
-      else:
-        dataset = tf.data.Dataset.from_generator(
-            generator(X_test, y_test), (DTY_FLT, DTY_INT), (NUM_SHAPE, ()))
-
-      # We call repeat after shuffling, rather than before, to prevent
-      # separate epochs from blending together.
-      if training:
-        dataset = dataset.shuffle(10 * batch_size, seed=RANDOM_SEED).repeat()
-
-      if NUM_SHAPE[0] == 32:
-        dataset = dataset.map(preprocess_image_32).batch(batch_size)
-      elif NUM_SHAPE[0] == 28:
-        dataset = dataset.map(preprocess_image_28).batch(batch_size)
-      else:
-        raise ValueError("invalid `NUM_SHAPE`.")
-
-      iterator = dataset.make_one_shot_iterator()
-      features, labels = iterator.get_next()
-      return features, labels
-
-    return _input_fn
-  return input_fn
-
-
-# --------------------------------------
+# -------------------------------------
 # 3. launch TensorBoard
 
 
-# --------------------------------------
+# -------------------------------------
 # 4. establish baselines
 
 
 def establish_baselines(NUM_CLASS, NUM_SHAPE, FEATURES_KEY):
   # A `Head` instance defines the loss function and metrics for `Estimators`.
   head = tf.estimator.MultiClassHead(NUM_CLASS)
-  # Some `Estimators` use feature columns to understand their input features.
+  # Some `Estimators` use feature columns for understanding their input
+  # features.
   feature_columns = [
       tf.feature_column.numeric_column(FEATURES_KEY, shape=NUM_SHAPE)
   ]
@@ -133,61 +98,6 @@ def make_config(experiment_name, RANDOM_SEED, LOG_DIR):
   # session_config = CONFIG
 
 
-# --------------------------------------
-# 1. download the data
-
-
-def data_to_feed_in(fed_data, binary=False, c0=4, c1=9):
-  # fed_data = args.dataset
-
-  if fed_data.startswith('cifar10'):
-    # NUM_CLASS = 10
-    NUM_SHAPE = (32, 32, 3)
-    TARGETS = [
-        'airplane', 'automobile', 'bird', 'cat', 'deer',
-        'dog', 'frog', 'horse', 'ship', 'truck',
-    ]
-  elif fed_data.endswith('mnist'):
-    # NUM_CLASS = 10
-    NUM_SHAPE = (28, 28, 1)
-    TARGETS = [
-        'T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
-        'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot',
-    ]
-  else:
-    raise ValueError("No such dataset named {}!".format(fed_data))
-
-  if fed_data == 'cifar10':
-    (X_train, y_train), (
-        X_test, y_test) = tf.keras.datasets.cifar10.load_data()
-  elif fed_data == 'mnist':
-    (X_train, y_train), (
-        X_test, y_test) = tf.keras.datasets.mnist.load_data()
-  elif fed_data == 'fmnist' or fed_data == 'fashion_mnist':
-    (X_train, y_train), (
-        X_test, y_test) = tf.keras.datasets.fashion_mnist.load_data()
-  else:
-    X_train = y_train = X_test = y_test = None
-
-  if fed_data.startswith('cifar'):
-    y_train = y_train.reshape(-1)
-    y_test = y_test.reshape(-1)
-  if fed_data.endswith('mnist'):
-    X_train = X_train.reshape(-1, 28, 28, 1)
-    X_test = X_test.reshape(-1, 28, 28, 1)
-
-  if binary:
-    mask_train = (y_train == c0) | (y_train == c1)
-    mask_test = (y_test == c0) | (y_test == c1)
-
-    X_train = X_train[mask_train]
-    y_train = y_train[mask_train]
-    X_test = X_test[mask_test]
-    y_test = y_test[mask_test]
-
-  return NUM_SHAPE, TARGETS, X_train, y_train, X_test, y_test
-
-
 # ======================================
 # Auxilliary
 
@@ -200,8 +110,8 @@ def ensemble_architecture(result):
   return summary_proto.value[0].tensor.string_val[0]
 
 
-def super_obtain_results(input_fn, BATCH_SIZE, TRAIN_STEPS, LOG_DIR,
-                         LOG_TLE, logger=None):
+def super_obtain_results(input_fn, BATCH_SIZE, TRAIN_STEPS,
+                         LOG_DIR, LOG_TLE, logger=None):
   def obtain_results(estimator, experiment_name, since):
     results, _ = tf.estimator.train_and_evaluate(
         estimator,
@@ -214,19 +124,61 @@ def super_obtain_results(input_fn, BATCH_SIZE, TRAIN_STEPS, LOG_DIR,
             start_delay_secs=1,
             throttle_secs=1))
 
+    '''
+    if logger:
+      logger.critical("\n\n")
+      logger.critical("-----------")
+      logger.critical("")
+      logger.critical("Loss:     {}".format(results["average_loss"]))
+      logger.critical("Accuracy: {}".format(results["accuracy"]))
+      time_elapsed = time.time() - since
+      logger.critical("estimator.config.tf_random_seed = {}".format(
+                      estimator.config.tf_random_seed))
+
+      logger.critical("{:17s}".format(experiment_name))
+      logger.critical("{:17s} starts at {:s}".format(
+          '', time.strftime("%d-%b-%Y %H:%M:%S", time.localtime(since))))
+      logger.critical("{:17s} finish at {:s}".format(
+          '', time.strftime("%d-%b-%Y %H:%M:%S", time.localtime(time.time()))))
+      logger.critical("{:17s} completed at {:.0f}m {:.2f}s".format(
+          '', time_elapsed // 60, time_elapsed % 60))
+      logger.critical(
+          "The entire duration is: {:.6f} min".format(time_elapsed / 60))
+      logger.critical("Saved location:")
+      logger.critical("\tLOG_DIR: {:s}".format(LOG_DIR))
+      logger.critical("\tLOG_TLE: {:s}".format(LOG_TLE))
+      logger.critical("")
+      logger.critical("-----------\n")
+
+    else:
+      print("\n\n-----------\n")
+      print("Loss:     {}".format(results["average_loss"]))
+      print("Accuracy: {}".format(results["accuracy"]))
+      time_elapsed = time.time() - since
+      print("estimator.config.tf_random_seed = {}".format(
+          estimator.config.tf_random_seed))
+      print("{:17s}".format(experiment_name))
+      print("{:17s} starts at {:s}".format(
+          '', time.strftime("%d-%b-%Y %H:%M:%S", time.localtime(since))))
+      print("{:17s} completed at {:.0f}m {:.2f}s".format(
+          '', time_elapsed // 60, time_elapsed % 60))
+    '''
+
     time_elapsed = time.time() - since
-    time_elapsed /= 60.  # minutes
+    csv_temp = time_elapsed / 60  # minutes
 
     if logger:
       logger.critical("\n\n\n")
       logger.critical("Loss:     {}".format(results["average_loss"]))
       logger.critical("Accuracy: {}".format(results["accuracy"]))
-      logger.critical("{:17s} completed in {} min".format(time_elapsed))
+      logger.critical("{:17s} completed in {:.0f} min {:.2f}s".format(
+          '', time_elapsed // 60, time_elapsed % 60))
     else:
       print("\n\n\n")
       print("Loss:     {}".format(results["average_loss"]))
       print("Accuracy: {}".format(results["accuracy"]))
-      print("{:17s} completed in {} min".format(time_elapsed))
+      print("{:17s} completed in {:.0f} min {:.2f}s".format(
+          '', time_elapsed // 60, time_elapsed % 60))
 
-    return results['average_loss'], results['accuracy'], time_elapsed
+    return results['average_loss'], results['accuracy'], csv_temp
   return obtain_results

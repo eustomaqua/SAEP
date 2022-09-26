@@ -1,4 +1,5 @@
 # coding: utf-8
+# 5-cross validation
 
 from __future__ import absolute_import
 from __future__ import division
@@ -12,13 +13,15 @@ import shutil
 import time
 
 import numpy as np
+import tensorflow.compat.v1 as tf
 
 from estimat import AdaNetOriginal, AdaNetVariants
 from estimat import AdaPruOriginal, AdaPruVariants
 from classes import PyFile
 
-from dataset import super_input_fn, establish_baselines, FEATURES_KEY
-import tensorflow.compat.v1 as tf
+from hparam import super_input_fn
+from dataset import establish_baselines
+from dataset import FEATURES_KEY
 
 
 BK_LOG_LEV = logging.INFO
@@ -37,8 +40,7 @@ ensemble_pruning_set = {
     "PRS": "pick_randsear",
     "PAP": "pick_worthful",
     "PIE": "pick_infothin",
-}
-
+}  # not a list anymore
 
 experiment_name_set = {
     'linear': 'linear',
@@ -79,7 +81,7 @@ def utilise_AdaNet(type_pruning='AdaNet.O',
 
 
 def utilise_SAEP(type_pruning='AdaNet.O',
-                 thinp_alpha = 0.5,
+                 thinp_alpha=.5,
                  learn_mixture_weights=False,
                  modeluse='dnn',
                  random_seed=None):
@@ -89,7 +91,6 @@ def utilise_SAEP(type_pruning='AdaNet.O',
   assert type_pruning[-1] in ['O', 'W']
   assert type_pruning[:-2] in ['AdaNet', 'PRS', 'PAP', 'PIE']
   assert modeluse in ['dnn', 'cnn', 'cpx']
-  # assert modeluse in ['dnn', 'cnn']
 
   if type_pruning.endswith('O'):
     creator = AdaPruOriginal(random_seed, type_pruning)
@@ -100,12 +101,11 @@ def utilise_SAEP(type_pruning='AdaNet.O',
     creator = AdaPruVariants(random_seed, type_pruning)
     creator.LEARN_MIXTURE_WEIGHTS = True
 
-  ens_pruning = type_pruning[:-2]
-  if ens_pruning != 'PIE':
-    creator.assign_SAEP_adapru(ensemble_pruning_set[ens_pruning])
+  ens_pruning = ensemble_pruning_set[type_pruning[:-2]]
+  if not type_pruning.startswith('PIE'):
+    creator.assign_SAEP_adapru(ens_pruning)
   else:
-    creator.assign_SAEP_adapru(ensemble_pruning_set[ens_pruning],
-                               thinp_alpha=thinp_alpha)
+    creator.assign_SAEP_adapru(ens_pruning, thinp_alpha=thinp_alpha)
 
   return creator
 
@@ -121,18 +121,14 @@ def utilise_SAEP(type_pruning='AdaNet.O',
 def auxrun_expts(type_pruning, thinp_alpha=.5,
                  lmw=False, modeluse=''):
   experiment_name = experiment_name_set[modeluse]
-
   this_experiment = os.path.join(experiment_name, type_pruning)
+
   if type_pruning.endswith('W'):
     this_experiment += str(lmw)[0]
   if type_pruning.startswith('PIE'):
     this_experiment += str(thinp_alpha)
 
   return experiment_name, this_experiment
-
-
-# --------------------------------------
-# Auxilliary
 
 
 def output_starts(logger, args, RANDOM_SEED, 
@@ -189,11 +185,8 @@ def output_starts(logger, args, RANDOM_SEED,
 
   logger.info("")
   logger.info("-----------")
-  # logger.info("-----------\n")
   return
 
-
-# def output_ending(logger, since, wr_cv='_sg'):
 
 def output_ending(logger, since, wr_cv='_sg', experiment_name=''):
   time_elapsed = time.time() - since
@@ -210,7 +203,6 @@ def output_ending(logger, since, wr_cv='_sg', experiment_name=''):
   logger.info("The entire duration is: {:.6f} min".format(
       time_elapsed / 60))
 
-  # logger.info("-----------\n")
   logger.info("")
   logger.info("-----------")
   csv_temp = time_elapsed / 60.  # minutes
@@ -223,14 +215,12 @@ def output_arches(logger, TF_LOG_TLE, arch, srcp, wr_cv='_sg',
   TF_ARCH, TF_SRCP = arch, srcp
   TF_ARCH = TF_FILE.find_architecture(TF_ARCH, TF_SRCP, logger)
 
-  # TF_ARCH = TF_FILE.find_architecture(TF_ARCH, TF_SRCP, logger)
   TF_FILE.copy_architecture(TF_ARCH, TF_SRCP, './',
                             TF_LOG_TLE + wr_cv + '-', logger)
   TF_DSTN = TF_LOG_TLE + wr_cv + '-' + TF_ARCH
   TF_DICT = TF_FILE.read_architecture(TF_DSTN)
 
   logger.info("")
-  # logger.info("{}- {}".format(TF_LOG_TLE, TF_ARCH))
   logger.info("{} {}".format(TF_LOG_TLE, TF_ARCH))
 
   logger.info("\tensemble_candidate_name: {}"
@@ -290,21 +280,8 @@ def output_arches(logger, TF_LOG_TLE, arch, srcp, wr_cv='_sg',
     return
   csv_writer.writerow(csv_rows[0])
   for ijk in csv_rows[1:]:
-    # csv_writer.writerow(['', '', ''] + ijk)
     csv_writer.writerow(ijk)
-  # csv_writer.writerows(csv_rows)
 
-  """
-  wrcv_csvfile = open(LOG_TLE + wr_cv + '.csv', 'w', newline="")
-  wrcv_csvwrit = csv.writer(wrcv_csvfile)
-  # wrcv_csvwrit.writerow(csv_rows[0])
-  # for _, _, _, i, j, k in csv_rows[1:]:
-  #   wrcv_csvwrit.writerow([i, j, k])
-  wrcv_csvwrit.writerows(csv_rows)
-
-  wrcv_csvfile.close()
-  del wrcv_csvwrit
-  """
   return
 
 
@@ -327,7 +304,6 @@ def run_SAEP_experiment(X_trn, y_trn, X_tst, y_tst,
   if os.path.exists(BK_LOG_TLE):
     os.remove(BK_LOG_TLE)
   log_file = logging.FileHandler(BK_LOG_TLE)
-  # log_file.setLevel(logging.DEBUG)
   log_file.setLevel(BK_LOG_LEV)
   log_file.setFormatter(formatter)
   logger.addHandler(log_file)
@@ -337,6 +313,8 @@ def run_SAEP_experiment(X_trn, y_trn, X_tst, y_tst,
                 TF_LOG_TLE, LOG_TLE, LOG_DIR,
                 experiment_name, this_experiment, directory)
   since = time.time()
+  # logger.warning("experiment_name: {}".format(experiment_name))
+  # logger.warning("this_experiment: {}".format(this_experiment))
 
   estimator = creator.create_estimator(
       modeluse, feature_columns, head, input_fn)
@@ -385,9 +363,7 @@ def run_SAEP_experiment(X_trn, y_trn, X_tst, y_tst,
       'adanet_loss', 'diver_weight', 'diver_subnet',
       '', 'len={}'.format(len(adanet_loss))]]
   for i, j, k in zip(adanet_loss, diver_weight, diver_subnet):
-    # csv_rows.append(['', '', '', i, j, k])
     csv_rows.append([i, j, k])
-  # output_arches(logger, wr_cv, csv_temp, csv_rows)
   output_arches(
       logger, TF_LOG_TLE, arch, srcp,
       wr_cv, csv_temp, csv_rows, csv_writer,
