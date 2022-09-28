@@ -129,8 +129,12 @@ class PyFile(object):
   def find_architecture(self, filename, srcpath, logger=None):
     srcfile = os.path.join(srcpath, filename)
     if not os.path.exists(srcfile):
-      logger.error("")
-      logger.error("No such file:   {}".format(srcfile))
+      if logger:
+        logger.info("")
+        logger.info("     srcpath:  {}".format(srcpath))
+        logger.info("No such file:  {}".format(filename))
+      else:
+        print("\nNo such file:  {}".format(srcfile))
 
       # ls | grep architecture
       archs = os.listdir(srcpath)
@@ -142,7 +146,10 @@ class PyFile(object):
       nums = [i.split('.')[0] for i in nums]
       nums = sorted(int(i) for i in nums)
 
-      logger.error("Last arch is:  architecture-{}.json".format(nums[-1]))
+      if logger:
+        logger.info("Last arch is:  architecture-{}.json".format(nums[-1]))
+      else:
+        print("Last arch is:  architecture-{}.json".format(nums[-1]))
       return 'architecture-{}.json'.format(nums[-1])
 
     return filename
@@ -151,13 +158,21 @@ class PyFile(object):
                         dstname='', logger=None):
     srcfile = os.path.join(srcpath, filename)
     dstfile = os.path.join(dstpath, dstname + filename)
-    if not os.path.exists(srcfile):
-      logger.error("No such file:  {}".format(srcfile))
+    if not os.path.exists(srcfile) and logger:
+      logger.info("No such file:  {}".format(srcfile))
+    elif not os.path.exists(srcfile):
+      print("No such file:  {}".format(srcfile))
     shutil.copyfile(srcfile, dstfile)
 
-    logger.info("Copy architecture-?.json")
-    logger.info("\tSrc path:  {}".format(srcfile))
-    logger.info("\tDst path:  {}".format(dstfile))
+    if logger:
+      logger.info("Copy architecture-?.json")
+      logger.info("\tSrc path:  {}".format(srcfile))
+      logger.info("\tDst path:  {}".format(dstfile))
+    else:
+      print("Copy architecture-?.json")
+      print("\tSrc path:  {}".format(srcfile))
+      print("\tDst path:  {}".format(dstfile))
+    return
 
   def read_architecture(self, filename, dstpath='./'):
     dstfile = os.path.join(dstpath, filename)

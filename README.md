@@ -23,7 +23,7 @@ You may start with the example below
 
 ```shell
 $ python main.py -data mnist -model dnn
-$ python main.py -data fmnist -model cnn  # fashion_mnist
+$ python main.py -data fashion_mnist -model cnn  # or fmnist
 $ python main.py -data cifar10 -bi -c0 4 -c1 7
 ```
 

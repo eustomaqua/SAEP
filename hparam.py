@@ -44,11 +44,12 @@ def default_args_params():
   parser = argparse.ArgumentParser()
   parser.add_argument(
       '-data', '--dataset', type=str, default='mnist',
-      choices=['cifar10', 'mnist', 'fashion_mnist'],
+      choices=['cifar10', 'mnist', 'fashion_mnist', 'fmnist'],
       help='Data set')
   parser.add_argument(
       '-model', '--model_setting', type=str, default='dnn',
-      choices=['dnn', 'cnn'], help='Builder')
+      # choices=['dnn', 'cnn'], help='Builder')
+      choices=["dnn", "cnn", 'linear', 'cpx'], help='Builder')
   parser.add_argument(
       '-type', '--type_pruning', type=str, default='AdaNet.O',
       choices=['AdaNet.O', 'SAEP.O', 'PRS.O', 'PAP.O', 'PIE.O',
@@ -233,24 +234,12 @@ def feed_dataset_all_in(datafeed, binary=False, c0=4, c1=9):
     NUM_SHAPE = (28, 28, 1)
     TARGETS = ["T-shirt/top", "Trouser", "Pullover", "Dress", "Coat",
                "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot", ]
-  elif datafeed == 'imagenet':
-    NUM_CLASS = 1000
-    NUM_SHAPE = (224, 224, 3)
-    TARGETS = ''
   else:
     raise ValueError("No such dataset named {}!".format(datafeed))
 
   if datafeed == 'cifar10':
     (X_train, y_train), (
         X_test, y_test) = tf.keras.datasets.cifar10.load_data()
-  elif datafeed == 'cifar100c':
-    (X_train, y_train), (
-        X_test, y_test) = tf.keras.datasets.cifar100.load_data(label_mode='coarse')
-    NUM_CLASS = 20
-  elif datafeed == 'cifar100f':
-    (X_train, y_train), (
-        X_test, y_test) = tf.keras.datasets.cifar100.load_data(label_mode='fine')
-    NUM_CLASS = 100
   elif datafeed == 'mnist':
     (X_train, y_train), (
         X_test, y_test) = tf.keras.datasets.mnist.load_data()

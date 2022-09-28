@@ -124,46 +124,6 @@ def super_obtain_results(input_fn, BATCH_SIZE, TRAIN_STEPS,
             start_delay_secs=1,
             throttle_secs=1))
 
-    '''
-    if logger:
-      logger.critical("\n\n")
-      logger.critical("-----------")
-      logger.critical("")
-      logger.critical("Loss:     {}".format(results["average_loss"]))
-      logger.critical("Accuracy: {}".format(results["accuracy"]))
-      time_elapsed = time.time() - since
-      logger.critical("estimator.config.tf_random_seed = {}".format(
-                      estimator.config.tf_random_seed))
-
-      logger.critical("{:17s}".format(experiment_name))
-      logger.critical("{:17s} starts at {:s}".format(
-          '', time.strftime("%d-%b-%Y %H:%M:%S", time.localtime(since))))
-      logger.critical("{:17s} finish at {:s}".format(
-          '', time.strftime("%d-%b-%Y %H:%M:%S", time.localtime(time.time()))))
-      logger.critical("{:17s} completed at {:.0f}m {:.2f}s".format(
-          '', time_elapsed // 60, time_elapsed % 60))
-      logger.critical(
-          "The entire duration is: {:.6f} min".format(time_elapsed / 60))
-      logger.critical("Saved location:")
-      logger.critical("\tLOG_DIR: {:s}".format(LOG_DIR))
-      logger.critical("\tLOG_TLE: {:s}".format(LOG_TLE))
-      logger.critical("")
-      logger.critical("-----------\n")
-
-    else:
-      print("\n\n-----------\n")
-      print("Loss:     {}".format(results["average_loss"]))
-      print("Accuracy: {}".format(results["accuracy"]))
-      time_elapsed = time.time() - since
-      print("estimator.config.tf_random_seed = {}".format(
-          estimator.config.tf_random_seed))
-      print("{:17s}".format(experiment_name))
-      print("{:17s} starts at {:s}".format(
-          '', time.strftime("%d-%b-%Y %H:%M:%S", time.localtime(since))))
-      print("{:17s} completed at {:.0f}m {:.2f}s".format(
-          '', time_elapsed // 60, time_elapsed % 60))
-    '''
-
     time_elapsed = time.time() - since
     csv_temp = time_elapsed / 60  # minutes
 

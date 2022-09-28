@@ -80,16 +80,21 @@ def utilise_AdaNet(type_pruning='AdaNet.O',
 # SAEP
 
 
-def utilise_SAEP(type_pruning='AdaNet.O',
+def utilise_SAEP(type_pruning='SAEP.O',
                  thinp_alpha=.5,
                  learn_mixture_weights=False,
                  modeluse='dnn',
                  random_seed=None):
-  if type_pruning.startswith('SAEP'):
-    type_pruning = type_pruning.replace('SAEP', 'AdaNet')
+  r"""
+  Note that SAEP is identical to AdaNet, except for it has more
+  information to output for us to analyse.
+  """
+
+  # if type_pruning.startswith('SAEP'):
+  #   type_pruning = type_pruning.replace('SAEP', 'AdaNet')
 
   assert type_pruning[-1] in ['O', 'W']
-  assert type_pruning[:-2] in ['AdaNet', 'PRS', 'PAP', 'PIE']
+  assert type_pruning[:-2] in ['SAEP', 'PRS', 'PAP', 'PIE']
   assert modeluse in ['dnn', 'cnn', 'cpx']
 
   if type_pruning.endswith('O'):
@@ -198,7 +203,7 @@ def output_ending(logger, since, wr_cv='_sg', experiment_name=''):
       "%d-%b-%Y %H:%M:%S", time.localtime(since))))
   logger.info("{:17s} finish at {:s}".format('', time.strftime(
       "%d-%b-%Y %H:%M:%S", time.localtime(time.time()))))
-  logger.info("{:17s} completed at {:.0f}m {:.2f}s".format(
+  logger.info("{:17s} completed in {:.0f}m {:.2f}s".format(
       '', time_elapsed // 60, time_elapsed % 60))
   logger.info("The entire duration is: {:.6f} min".format(
       time_elapsed / 60))
@@ -418,7 +423,7 @@ def run_AdaNet_experiment(X_trn, y_trn, X_tst, y_tst,
       logger, TF_LOG_TLE, arch, srcp, wr_cv, csv_temp,
       csv_writer=csv_writer,
       experiment_name=experiment_name,
-      this_experiment=experiment_name)
+      this_experiment=this_experiment)
 
 
 def run_experiment(X_trn, y_trn, X_tst, y_tst,
