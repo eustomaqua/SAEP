@@ -476,8 +476,12 @@ class ComplexityRegularizedEnsembler(Ensembler):
         tf.cast(tf.argmax(subnet, axis=1), DTY_INT) for subnet in weak_logits]
     if self._model_dir:
       model_dir = self._model_dir
+    if not model_dir:
+      return np.float('-inf')
     latest_checkpoint = tf.train.latest_checkpoint(model_dir)
     status = previous_iteration_checkpoint.restore(latest_checkpoint)
+    if not (latest_checkpoint or status):
+      return np.float('-inf')
     with tf_compat.v1.Session() as sess:
       status.initialize_or_restore(sess)
       weak_logits = [sess.run(subnet) for subnet in weak_logits]

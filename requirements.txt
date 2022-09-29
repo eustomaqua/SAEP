@@ -3,6 +3,7 @@ numpy == 1.19.5
 pathos == 0.2.7
 tensorboard == 2.1.1
 tensorflow-gpu == 2.1.0
+mock == 4.0.3
 
 Pillow == 8.1.0
 pytest == 6.2.2
