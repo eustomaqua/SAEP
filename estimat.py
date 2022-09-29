@@ -17,7 +17,7 @@ import saep as SAEP
 import saep.examples_simple_dnn as pruned_dnn
 
 from classes import PrunedCNNGenerator
-from classes import ComplexCNNGenerator
+# from classes import ComplexCNNGenerator
 
 
 # ======================================
@@ -287,6 +287,7 @@ class AdaPruOriginal(AbstractCreate):
         thinp_alpha=self.thinp_alpha,
         logger=self.logger, final=self.final)
 
+  """
   def _new_complex_cnn(self, feature_columns, head, input_fn):
     max_iteration_steps = self.TRAIN_STEPS // self.ADANET_ITERATIONS
     subnetwork_generator = ComplexCNNGenerator(
@@ -308,6 +309,7 @@ class AdaPruOriginal(AbstractCreate):
         adanet_iterations=self.ADANET_ITERATIONS,
         thinp_alpha=self.thinp_alpha,
         logger=self.logger, final=self.final)
+  """
 
 
 class AdaPruVariants(AbstractCreate):
@@ -377,6 +379,7 @@ class AdaPruVariants(AbstractCreate):
         thinp_alpha=self.thinp_alpha,
         logger=self.logger, final=self.final)
 
+  """
   def _new_complex_cnn(self, feature_columns, head, input_fn):
     ensembler_optimizer = None
     if self.LEARN_MIXTURE_WEIGHTS:
@@ -408,3 +411,4 @@ class AdaPruVariants(AbstractCreate):
         adanet_iterations=self.ADANET_ITERATIONS,
         thinp_alpha=self.thinp_alpha,
         logger=self.logger, final=self.final)
+  """

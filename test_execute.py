@@ -90,11 +90,11 @@ class Test_SAEP(unittest.TestCase):
     if tp.endswith('O'):
       self.curr(tp, um='dnn')
       self.curr(tp, um='cnn')
-      self.curr(tp, um='cpx')
+      # self.curr(tp, um='cpx')
       return
     self.curr(tp, lmw, 'dnn')
     self.curr(tp, lmw, 'cnn')
-    self.curr(tp, lmw, 'cpx')
+    # self.curr(tp, lmw, 'cpx')
 
   def test_main(self):
     self.impl('SAEP.O')

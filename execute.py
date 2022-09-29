@@ -90,12 +90,12 @@ def utilise_SAEP(type_pruning='SAEP.O',
   information to output for us to analyse.
   """
 
-  # if type_pruning.startswith('SAEP'):
-  #   type_pruning = type_pruning.replace('SAEP', 'AdaNet')
+  if type_pruning.startswith('AdaNet'):
+    type_pruning = type_pruning.replace('AdaNet', 'SAEP')
 
   assert type_pruning[-1] in ['O', 'W']
   assert type_pruning[:-2] in ['SAEP', 'PRS', 'PAP', 'PIE']
-  assert modeluse in ['dnn', 'cnn', 'cpx']
+  assert modeluse in ['dnn', 'cnn']  # , 'cpx']
 
   if type_pruning.endswith('O'):
     creator = AdaPruOriginal(random_seed, type_pruning)

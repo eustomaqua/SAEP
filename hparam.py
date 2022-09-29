@@ -49,7 +49,7 @@ def default_args_params():
   parser.add_argument(
       '-model', '--model_setting', type=str, default='dnn',
       # choices=['dnn', 'cnn'], help='Builder')
-      choices=["dnn", "cnn", 'linear', 'cpx'], help='Builder')
+      choices=["dnn", "cnn", 'linear'], help='Builder')
   parser.add_argument(
       '-type', '--type_pruning', type=str, default='AdaNet.O',
       choices=['AdaNet.O', 'SAEP.O', 'PRS.O', 'PAP.O', 'PIE.O',
@@ -90,7 +90,7 @@ def default_args_params():
       help='RANDOM_SEED')
 
   parser.add_argument(
-      '-it', '--adanet_iterations', type=int, default=7,
+      '-it', '--adanet_iterations', type=int, default=11,
       help='ADANET_ITERATIONS')
   parser.add_argument(
       '-mix', '--adanet_learn_mixture', action='store_true',

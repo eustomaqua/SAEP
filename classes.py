@@ -252,6 +252,7 @@ class PrunedCNNGenerator(PrunedSubGenerator):
 # --------------------------------------
 
 
+"""
 class ComplexCNNBuilder(PrunedSubBuilder):
   def __init__(self, learning_rate, max_iteration_steps, seed, learn_mixture_weights=False):
     self._learning_rate = learning_rate
@@ -353,3 +354,4 @@ class ComplexCNNGenerator(PrunedSubGenerator):
     if seed is not None:
       seed += iteration_number
     return [self._dnn_builder_fn(seed=seed)]
+"""
