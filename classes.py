@@ -10,7 +10,7 @@ import json
 import os
 import shutil
 
-import re
+# import re
 import tensorflow.compat.v1 as tf
 import adanet
 
@@ -70,7 +70,7 @@ class SimpleCNNBuilder(adanet.subnetwork.Builder):
     return adanet.Subnetwork(last_layer=x, logits=logits,
                              complexity=complexity, persisted_tensors={})
 
-  def build_subnetwork_train_op(self, subnetwork, loss, var_list, labels, 
+  def build_subnetwork_train_op(self, subnetwork, loss, var_list, labels,
                                 iteration_step, summary, previous_ensemble=None):
     """See `adanet.subnetwork.Builder`."""
     # Momentum optimizer with cosine learning rate decay works well with CNNs.

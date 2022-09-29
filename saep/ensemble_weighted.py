@@ -26,7 +26,7 @@ from saep.ensemble_ensembler import Ensembler
 import tensorflow.compat.v2 as tf
 
 
-import tensorflow.compat.v1 as tf_v1
+# import tensorflow.compat.v1 as tf_v1
 from saep.data_entropy import pairwise_measure_all_without_label
 from saep.data_entropy import pairwise_measure_all_disagreement
 from saep.data_entropy import PrunedAdanetSelect

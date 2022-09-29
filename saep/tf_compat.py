@@ -23,8 +23,8 @@ import tensorflow.compat.v2 as tf_v2
 # pylint: disable=unused-import
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python import tf2
-from tensorflow.python.keras.metrics import Metric
-from tensorflow.python.tpu import tpu_function
+# from tensorflow.python.keras.metrics import Metric
+# from tensorflow.python.tpu import tpu_function
 from tensorflow_estimator.python.estimator.head import regression_head
 # pylint: enable=g-direct-tensorflow-import
 # pylint: enable=unused-import

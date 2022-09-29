@@ -8,10 +8,10 @@ from __future__ import print_function
 import logging
 import csv
 import glob
-import time
+# import time
 
 import os
-import shutil
+# import shutil
 import sys
 
 import numpy as np
@@ -31,7 +31,7 @@ from hparam import default_data_feedin
 
 from hparam import situation_cross_validation
 from execute import BK_LOG_LEV
-from execute import auxrun_expts, output_starts
+from execute import auxrun_expts
 
 from execute import utilise_SAEP, utilise_AdaNet
 from execute import run_experiment

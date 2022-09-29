@@ -7,7 +7,6 @@
 ![](https:\//img.shields.io\/badge\/baseline-adanet-brightgreen) 
 
 
-
 This repository is used to release the code for our paper: ***Sub-Architecture Ensemble Pruning in Neural Architecture Search (SAEP)*** [[arxiv]](https://arxiv.org/abs/1910.00370v2) [[paper]](https://ieeexplore.ieee.org/document/9460115) 
 
 The code is conducted based on [AdaNet](https://github.com/tensorflow/adanet), with critical modifications in the searching process: We intend to prune the ensemble architecture on-the-fly based on various criteria and keep more valuable subarchitectures in the end; The criteria used to decide which subarchitectures will be pruned have three proposed solutions here in our SAEP, that is,
@@ -15,7 +14,6 @@ The code is conducted based on [AdaNet](https://github.com/tensorflow/adanet), w
 - *Pruning by Random Selection (PRS)*,
 - *Pruning by Accuracy Performance (PAP)*, and
 - *Pruning by Information Entropy (PIE)*.
-
 
 ## Getting Started
 
@@ -47,7 +45,6 @@ You are also free to adjust other training parameters for potential better resul
 
 PS. Mistakes may exist in the current version. Please do not hesitate to contact us if you find any. You are also more than welcome to send us pull requests.
 
-
 ## Requirements
 
 **Environment**
@@ -56,7 +53,6 @@ PS. Mistakes may exist in the current version. Please do not hesitate to contact
 |:-------:|:----:|:-----:|
 | Ubuntu  | 10.0 | 7.6.4 |
 | Windows | 10.1 | 7.6.5 |
-
 
 **Dependency**
 
@@ -74,13 +70,11 @@ $ pip install tensorflow-gpu==2.1.0
 $ # pip install -r requirements.txt
 ```
 
-
 Remove a virtual environment
 ```shell
 $ source deactivate
 $ conda remove -n test --all
 ```
-
 
 ## Citing this Work
 
@@ -104,4 +98,3 @@ Please cite our paper if you find this repository helpful
 ## License
 
 SAEP is released under the [MIT License](./LICENSE).
-

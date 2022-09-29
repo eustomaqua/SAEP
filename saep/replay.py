@@ -19,10 +19,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import json
-import os
+# import json
+# import os
 
-import tensorflow.compat.v1 as tf
+# import tensorflow.compat.v1 as tf
 
 
 class Config(object):  # pylint: disable=g-classes-have-attributes

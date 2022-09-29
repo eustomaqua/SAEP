@@ -34,7 +34,7 @@ from saep.core_eval_metrics import _IterationMetrics
 
 import numpy as np
 import tensorflow.compat.v2 as tf
-from typing import Any
+# from typing import Any
 
 
 class _TrainManager(object):

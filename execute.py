@@ -5,12 +5,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import csv
 import logging
+import time
 
 import os
 import shutil
-import time
 
 import numpy as np
 import tensorflow.compat.v1 as tf
@@ -136,7 +135,7 @@ def auxrun_expts(type_pruning, thinp_alpha=.5,
   return experiment_name, this_experiment
 
 
-def output_starts(logger, args, RANDOM_SEED, 
+def output_starts(logger, args, RANDOM_SEED,
                   TF_LOG_TLE, LOG_TLE, LOG_DIR,
                   experiment_name, this_experiment, directory):
   logger.info("TF_LOG_TLE:  {}".format(TF_LOG_TLE))

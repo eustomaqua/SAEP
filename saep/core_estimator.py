@@ -33,7 +33,7 @@ from saep.core_architecture import _Architecture
 from saep.core_candidate import _CandidateBuilder
 from saep.core_ensemble_builder import _EnsembleBuilder
 from saep.core_ensemble_builder import _SubnetworkManager
-from saep.core_iteration import _Iteration
+# from saep.core_iteration import _Iteration
 from saep.core_iteration import _IterationBuilder
 from saep.core_report_accessor import _ReportAccessor
 from saep.core_summary import _ScopedSummary

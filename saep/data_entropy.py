@@ -17,7 +17,7 @@ from numba import jit, float_
 from pathos import multiprocessing as pp
 import numpy as np
 
-import tensorflow as tf 
+# import tensorflow as tf
 # DELETE = True
 
 
@@ -58,9 +58,9 @@ class PrunedAdanetInfo(object):
 
   @njit
   def KL_divergence(self, px, py):
-    ans = 0.0 
+    ans = 0.0
     for i in range(len(px)):
-      tem = self.check_zero(px[i] / py[i])  
+      tem = self.check_zero(px[i] / py[i])
       ans += px[i] * np.log(tem)
     return ans
 
@@ -105,7 +105,7 @@ class PrunedAdanetInfo(object):
     # for a scalar value
     if p == 0.0:
       return 0.0
-    return -1. * p * np.log(p) 
+    return -1. * p * np.log(p)
 
   def H1(self, X):
     # H(X), H(Y): for one vector
@@ -153,16 +153,16 @@ class PrunedAdanetInfo(object):
 
   def TDAC(self, X, Y, L, lam):
     if X == Y:
-      return 0.0 
+      return 0.0
     tem = self.MI(X, L) + self.MI(Y, L)
-    return lam * self.VI(X, Y) + (1. - lam) * tem / 2. 
+    return lam * self.VI(X, Y) + (1. - lam) * tem / 2.
 
   def TDAS1(self, S, L, lam):
     S = np.array(S)
     k = S.shape[1]
     ans = [[self.TDAC(S[:, i].tolist(), S[:, j].tolist(), L, lam)
             for j in range(k)] for i in range(k)]
-    ans = np.sum(ans) / 2. 
+    ans = np.sum(ans) / 2.
     return ans
 
   def TDAS2(self, S, L, lam):
@@ -192,9 +192,9 @@ class PrunedAdanetSelect(PrunedAdanetInfo):
 
   @njit
   def binsMDL(self, data, nb_bin=5):
-    # Let `U' be a set of size `d' of labelled instances accompanied 
+    # Let `U' be a set of size `d' of labelled instances accompanied
     # by a large set of features `N' with cardinality `n', represented
-    # in a `dxn' matrix. 
+    # in a `dxn' matrix.
     data = np.array(data, dtype=self.TYP_FLT)
     d = data.shape[0]  # number of samples
     n = data.shape[1]  # number of features
@@ -206,7 +206,7 @@ class PrunedAdanetSelect(PrunedAdanetInfo):
       idx = (data[:, j] == fmin)
       trans[idx] = 0
       pleft = fmin
-      pright = fmin + gap
+      pright = fmin + fgap
       for i in range(nb_bin):
         idx = ((data[:, j] > pleft) & (data[:, j] <= pright))
         trans[idx] = i
@@ -227,7 +227,8 @@ class PrunedAdanetSelect(PrunedAdanetInfo):
     Xs_trn = np.array(X_trn)[:, S1].tolist()
     Xs_tst = np.array(X_tst)[:, S1].tolist()
     Xs_val = np.array(X_val)[:, S1].tolist() if not X_val else []
-    S1 = np.where(np.array(Sl) == True)[0].tolist()
+    # S1 = np.where(np.array(S1) == True)[0].tolist()
+    S1 = np.where(S1)[0].tolist()
     time_elapsed = time.time() - since
     return deepcopy(S1), time_elapsed, deepcopy(Xs_trn), deepcopy(Xs_val), deepcopy(Xs_tst)
 
@@ -274,9 +275,9 @@ class PrunedAdanetSelect(PrunedAdanetInfo):
   # @njit
   def arg_max_p(self, T, S, L, lam):
     r""" Params:
-    S:  1D list with elements {True, False}, 
+    S:  1D list with elements {True, False},
         represents this one is in S or not, and
-        S is selected features. 
+        S is selected features.
     """
 
     T = np.array(T)
@@ -330,7 +331,8 @@ class PrunedAdanetSelect(PrunedAdanetInfo):
     sub_all_in_N = np.where(Sl != -1)[0]
     sub_all_greedy = self.centralised_OMEP(
         N[:, (Sl != -1)].tolist(), k, L, lam)
-    sub_all_greedy = np.where(np.array(sub_all_greedy) == True)[0]
+    # sub_all_greedy = np.where(np.array(sub_all_greedy) == True)[0]
+    sub_all_greedy = np.where(sub_all_greedy)[0]
 
     final_S = np.zeros(n, dtype=self.TYP_BOL)
     final_S[sub_all_in_N[sub_all_greedy]] = 1

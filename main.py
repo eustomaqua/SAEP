@@ -8,10 +8,8 @@ from __future__ import print_function
 import logging
 import csv
 import glob
-import time
 
 import os
-import shutil
 import sys
 
 import numpy as np

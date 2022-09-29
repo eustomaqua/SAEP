@@ -6,7 +6,7 @@ from __future__ import print_function
 
 import unittest
 import os
-import shutil
+# import shutil
 import numpy as np
 
 from saep.test_utils_const import FIXED_SEED

@@ -28,9 +28,9 @@ import six
 import tensorflow.compat.v2 as tf
 
 
-from saep.data_entropy import pairwise_measure_all_without_label
-from saep.data_entropy import pairwise_measure_all_disagreement
-import numpy as np
+# from saep.data_entropy import pairwise_measure_all_without_label
+# from saep.data_entropy import pairwise_measure_all_disagreement
+# import numpy as np
 DTY_INT = 'int32'
 DTY_FLT = 'float32'
 
